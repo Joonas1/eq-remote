@@ -3,6 +3,10 @@ const $ = id => document.getElementById(id);
 const setStyle = (el, styles) => Object.assign(el.style, styles);
 const gainToY = gain => eqCanvas.height / 2 - (gain / 12) * (eqCanvas.height / 2.5);
 
+// --- Database ---
+const FIREBASE_BASE = "https://parametriceq-efaac-default-rtdb.europe-west1.firebasedatabase.app";
+const STATE_URL = FIREBASE_BASE + "/state.json";
+
 // --- DOM ---
 const eqContainer = $('eqContainer');
 const eqCanvas = $('eqCanvas');
@@ -51,60 +55,74 @@ root.style.setProperty('--color-muted', window.CONSTANTS.LABEL_COLOR);
 // --- Persistent State Helpers ---
 const BAND_KEYS = ['type', 'freq', 'gain', 'Q', 'enabled'];
 
+// Load EQ state from Firebase
 async function loadStateFromServer() {
     try {
-        const res = await fetch('/state');
+        const res = await fetch(STATE_URL);
         const data = await res.json();
+
+        if (!data) {
+            console.warn("No state found in Firebase");
+            return;
+        }
 
         overallGain = data.gain ?? 0;
         power = data.power ?? true;
 
-        data.bands.forEach((bandData, i) => {
-            if (bands[i]) {
-                // Only pick valid keys
-                const { type, freq, gain, Q, enabled } = bandData;
-                bands[i] = { ...bands[i], type, freq, gain, Q, enabled };
-            }
-        });
+        if (data.bands) {
+            data.bands.forEach((bandData, i) => {
+                if (bands[i]) {
+                    bands[i].type = bandData.type;
+                    bands[i].freq = bandData.freq;
+                    bands[i].gain = bandData.gain;
+                    bands[i].Q = bandData.Q;
+                    bands[i].enabled = bandData.enabled;
+                }
+            });
+        }
 
-
-        // Update UI
         gainSlider.value = overallGain;
         gainInput.value = overallGain.toFixed(1);
         gainValue.innerText = `${overallGain.toFixed(1)} dB`;
+
         powerButton.classList.toggle('active', power);
-        controlButtons.forEach((btn, i) => btn.classList.toggle('active', bands[i].enabled && power));
+        controlButtons.forEach((btn, i) =>
+            btn.classList.toggle('active', bands[i].enabled && power)
+        );
 
         drawScene();
-    } catch (e) {
-        console.error('Failed to load state', e);
+    } catch (err) {
+        console.error("Failed to load state from Firebase:", err);
     }
 }
 
+// Save current EQ state to Firebase
 async function saveStateToServer() {
     try {
-        const data = {
+        const newState = {
             gain: overallGain,
             power: power,
-            bands: bands.map(band => {
-                // Explicitly pick only allowed keys
-                return {
-                    type: band.type,
-                    freq: band.freq,
-                    gain: band.gain,
-                    Q: band.Q,
-                    enabled: band.enabled
-                };
-            })
+            bands: bands.map(b => ({
+                type: b.type,
+                freq: b.freq,
+                gain: b.gain,
+                Q: b.Q,
+                enabled: b.enabled
+            })),
+            filename: "41.json",
+            version: 1
         };
 
-        await fetch('/state', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+        const res = await fetch(STATE_URL, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newState)
         });
-    } catch (e) {
-        console.error('Failed to save state', e);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        console.log("Saved state to Firebase successfully");
+    } catch (err) {
+        console.error("Failed to save state:", err);
     }
 }
 
