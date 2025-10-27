@@ -128,12 +128,12 @@ async function saveStateToServer() {
 
 async function checkServerConnection() {
     try {
-        const res = await fetch('/state');
+        const res = await fetch(STATE_URL); // use Firebase instead of /state
         connection = res.ok;
     } catch (e) {
         connection = false;
     }
-    console.log('Server connection status:', connection);
+    console.log('Firebase connection status:', connection);
     powerStateUpdate();
 }
 
