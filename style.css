@@ -1,0 +1,608 @@
+/* ========================
+   VARIABLES
+======================== */
+:root {
+    --bg-main: #222;
+    --bg-container: #201e29;
+    --bg-panel: #1b1b1b6f;
+    --bg-button: #2e2e34;
+    --bg-button-hover: #3a3a42;
+    --color-text: #eee;
+    --color-overlay: #a1a1a1;
+    --color-highlight: rgba(100, 150, 255, 0.2);
+    --border-color: #555555;
+    --radius: 20px;
+    --font-base: Arial, sans-serif;
+    --slider-thumb-width: 20px;
+    --slider-thumb-height: 40px;
+    --modal-backdrop: rgba(0, 0, 0, 0.4);
+    --modal-hover: #3a3a42;
+    --modal-bg: #1b1b1b;
+    --info-text: #777777;
+    --spacing: 10px;
+}
+
+/* ========================
+   BASE
+======================== */
+body {
+    font-family: var(--font-base);
+    background: var(--bg-main);
+    color: var(--color-text);
+    margin: 20px;
+}
+
+#mainContainer {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+#eqContainer {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: var(--bg-container);
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    padding: 10px;
+}
+
+#controlsContainer {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-container);
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    padding: 10px;
+}
+
+#topControls {
+    display: flex;
+    justify-content: space-around;
+}
+
+#topControls button {
+    all: unset;
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color 0.2s, color 0.2s;
+    text-align: center;
+    user-select: none;
+    font-weight: bold;
+}
+
+#topControls button:hover {
+    background-color: var(--bg-button-hover);
+}
+
+#topControls button.active {
+    color: var(--color-accent);
+}
+
+#topControls button.stby {
+    color: var(--color-inactive);
+}
+
+#dbContainer {
+    position: relative;
+    user-select: none;
+}
+
+#eqCanvas {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+}
+
+#bandControls {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+}
+
+#controls {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--border-color);
+}
+
+#controls input[type="range"] {
+    accent-color: var(--color-accent);
+}
+
+#gainValue {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 16px;
+    color: var(--color-muted);
+}
+
+#powerButton {
+    position: absolute;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color 0.2s, color 0.3s;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 25px;
+    user-select: none;
+}
+
+#powerButton:hover {
+    background-color: var(--bg-button-hover);
+}
+
+#powerButton.active {
+    color: var(--color-accent);
+}
+
+#gainSlider {
+    height: 20px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg-button);
+    cursor: pointer;
+}
+
+#gainSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 40px;
+    background: var(--color-accent);
+    border-radius: 10%;
+}
+
+#gainSlider::-moz-range-thumb {
+    width: 20px;
+    height: 40px;
+    background: var(--color-accent);
+    border-radius: 10%;
+}
+
+#gainSlider:disabled::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 40px;
+    background: var(--color-inactive);
+    border-radius: 10%;
+}
+
+#gainSlider:disabled::-moz-range-thumb {
+    width: 20px;
+    height: 40px;
+    background: var(--color-inactive);
+    border-radius: 10%;
+}
+
+#gainInput {
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    text-align: center;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+#gainInput:focus {
+    outline: 2px solid var(--color-accent);
+}
+
+#powerOverlay {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 100px;
+    font-weight: bold;
+    color: var(--color-overlay);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+#powerOverlay.active {
+    opacity: 0.5;
+}
+
+#connectionOverlay {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 90px;
+    font-weight: bold;
+    color: #9e0000;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+}
+
+#connectionOverlay.active {
+    opacity: 0.5;
+}
+
+#topSettings {
+    display: flex;
+    justify-content: space-around;
+}
+
+#topSettings button {
+    all: unset;
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color 0.2s, color 0.2s;
+    text-align: center;
+    user-select: none;
+    font-weight: bold;
+}
+
+#topSettings button:hover {
+    background-color: var(--bg-button-hover);
+}
+
+#settingsModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(5px);
+    background-color: var(--modal-backdrop);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#settingsModalContent {
+    position: relative;
+    background-color: var(--modal-bg);
+    padding: 20px;
+    border-radius: 20px;
+    color: var(--color-text);
+    min-width: 500px;
+    max-width: 2000px;
+}
+
+#closeSettingsModal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-size: 32px;
+    cursor: pointer;
+}
+
+#closeSettingsModal:hover {
+    color: var(--modal-hover);
+}
+
+#saveModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(5px);
+    background-color: var(--modal-backdrop);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#saveModalContent {
+    position: relative;
+    background-color: var(--modal-bg);
+    padding: 20px;
+    border-radius: 20px;
+    color: var(--color-text);
+    min-width: 300px;
+    max-width: 1000px;
+}
+
+#closeSaveModal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-size: 32px;
+    cursor: pointer;
+}
+
+#closeSaveModal:hover {
+    color: var(--modal-hover);
+}
+
+#saveFileName {
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    font-size: 20px;
+    border-radius: 5px;
+}
+
+#confirmSaveButton {
+    all: unset;
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color 0.2s, color 0.2s;
+    text-align: center;
+    user-select: none;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+#confirmSaveButton:hover {
+    background-color: var(--bg-button-hover);
+}
+
+#loadModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(5px);
+    background-color: var(--modal-backdrop);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#loadModalContent {
+    position: relative;
+    background-color: var(--modal-bg);
+    padding: 20px;
+    border-radius: 20px;
+    color: var(--color-text);
+    min-width: 300px;
+    max-width: 1000px;
+}
+
+#profileList {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    margin: 0;
+    list-style: none;
+}
+
+#profileList li {
+    background: var(--bg-button);
+    color: var(--color-muted);
+    padding: 10px 14px;
+    margin: 6px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+}
+
+#profileList li:hover {
+    background: var(--bg-button-hover);
+}
+
+#profileList::-webkit-scrollbar {
+    width: 30px;
+}
+
+#profileList::-webkit-scrollbar-track {
+    background: var(--bg-panel);
+    border-radius: 5px;
+}
+
+#profileList::-webkit-scrollbar-thumb {
+    background: var(--bg-button);
+    border-radius: 5px;
+}
+
+#profileList::-webkit-scrollbar-thumb:hover {
+    background: var(--bg-button-hover);
+}
+
+#profileList {
+    scrollbar-width: 30px;
+    scrollbar-color: var(--bg-button) var(--bg-panel);
+}
+
+#closeLoadModal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-size: 32px;
+    cursor: pointer;
+}
+
+#closeLoadModal:hover {
+    color: var(--modal-hover);
+}
+
+#bandInfo {
+    display: flex;
+    justify-content: space-around;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+}
+
+#bottomInfo {
+    position: relative;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--info-text);
+}
+
+.scrollList {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    z-index: 1;
+}
+
+.listItem {
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background: var(--bg-button);
+    cursor: pointer;
+    color: var(--color-text);
+    user-select: none;
+    cursor: pointer;
+}
+
+.bandLabel {
+    font-weight: bold;
+    color: var(--color-muted);
+}
+
+.gainInput {
+    width: 60px;
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    text-align: center;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+.gainInput:focus {
+    outline: 2px solid var(--color-accent);
+    z-index: 2;
+}
+
+.freqInput {
+    width: 60px;
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    text-align: center;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+.freqInput:focus {
+    outline: 2px solid var(--color-accent);
+    z-index: 2;
+}
+
+.qInput {
+    width: 60px;
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    text-align: center;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+.qInput:focus {
+    outline: 2px solid var(--color-accent);
+    z-index: 2;
+}
+
+.inputSliderRow {
+    color: var(--color-muted);
+}
+
+.controlRow label {
+    width: 40px;
+    cursor: pointer;
+}
+
+.inputSliderRow {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.gainSlider {
+    flex: 1;
+    cursor: pointer;
+}
+
+.freqSlider {
+    flex: 1;
+    cursor: pointer;
+}
+
+.qSlider {
+    flex: 1;
+    cursor: pointer;
+}
+
+.listItem.highlighted {
+    background-color: var(--color-highlight);
+    border-left: 3px solid var(--color-accent);
+}
+
+.listItem.inactive {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.scrollList .listItem span,
+.scrollList .listItem label {
+    user-select: none;
+}
+
+/* Toast container */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Toast style */
+.toast {
+  color: white;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: all 0.4s ease;
+}
+
+/* Show animation */
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.success {
+  background-color: #28a745; /* green */
+}
+
+.toast.error {
+  background-color: #dc3545; /* red */
+}

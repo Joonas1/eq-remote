@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Parametric EQ Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="mainContainer">
+
+        <div id="eqContainer">
+            <div id="powerOverlay">INACTIVE</div>
+            <div id="connectionOverlay">CONNECTION LOST</div>
+            <button id="powerButton">⏻</button>
+            <div id="topControls">
+                <button>High Pass</button>
+                <button>Low Shelf</button>
+                <button>Bell 1</button>
+                <button>Bell 2</button>
+                <button>Bell 3</button>
+                <button>High Shelf</button>
+                <button>Low Pass</button>
+            </div>
+            <div id="dbContainer">
+                <canvas id="eqCanvas"></canvas>
+                <div id="controls">
+                    <span id="gainValue">0.0 dB</span>
+                    <input type="range" id="gainSlider" min="-12" max="12" value="0" step="0.1">
+                    <input type="number" id="gainInput" min="-12" max="12" value="0.0" step="0.1">
+                </div>
+            </div>
+        </div>
+
+        <div id="controlsContainer">
+            <div id="topSettings">
+                <button>Save</button>
+                <button>Load</button>
+                <button>Reset</button>
+                <button>⚙️</button>
+            </div>
+            <div id="bandInfo">
+                <div class="scrollList" id="scrollList">
+                    <!-- This is the controls for High Pass -->
+                    <div class="listItem">
+                        <span class="bandLabel">High Pass</span>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Gain:</label>
+                                <input type="number" class="gainInput" step="0.1" value="0">
+                                <input type="range" class="gainSlider" min="-15" max="15" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Freq:</label>
+                                <input type="number" class="freqInput" step="1" value="12000">
+                                <input type="range" class="freqSlider" min="0" max="100" step="1" value="12000">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Q:</label>
+                                <input type="number" class="qInput" step="0.1" value="1">
+                                <input type="range" class="qSlider" min="0" max="100" step="0.1" value="1">
+                            </div>
+                        </div>
+                    </div>
+                <!-- This is the controls for Low Shelf -->
+                    <div class="listItem">
+                        <span class="bandLabel">Low Shelf</span>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Gain:</label>
+                                <input type="number" class="gainInput" step="0.1" value="0">
+                                <input type="range" class="gainSlider" min="-15" max="15" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Freq:</label>
+                                <input type="number" class="freqInput" step="1" value="12000">
+                                <input type="range" class="freqSlider" min="0" max="100" step="1" value="12000">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Q:</label>
+                                <input type="number" class="qInput" step="0.1" value="1">
+                                <input type="range" class="qSlider" min="0" max="100" step="0.1" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- This is the controls for Bell 1 -->
+                    <div class="listItem">
+                        <span class="bandLabel">Bell 1</span>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Gain:</label>
+                                <input type="number" class="gainInput" step="0.1" value="0">
+                                <input type="range" class="gainSlider" min="-15" max="15" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Freq:</label>
+                                <input type="number" class="freqInput" step="1" value="12000">
+                                <input type="range" class="freqSlider" min="0" max="100" step="1" value="12000">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Q:</label>
+                                <input type="number" class="qInput" step="0.1" value="1">
+                                <input type="range" class="qSlider" min="0" max="100" step="0.1" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- This is the controls for Bell 2 -->
+                    <div class="listItem">
+                        <span class="bandLabel">Bell 2</span>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Gain:</label>
+                                <input type="number" class="gainInput" step="0.1" value="0">
+                                <input type="range" class="gainSlider" min="-15" max="15" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Freq:</label>
+                                <input type="number" class="freqInput" step="1" value="12000">
+                                <input type="range" class="freqSlider" min="0" max="100" step="1" value="12000">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Q:</label>
+                                <input type="number" class="qInput" step="0.1" value="1">
+                                <input type="range" class="qSlider" min="0" max="100" step="0.1" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- This is the controls for Bell 3 -->
+                    <div class="listItem">
+                        <span class="bandLabel">Bell 3</span>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Gain:</label>
+                                <input type="number" class="gainInput" step="0.1" value="0">
+                                <input type="range" class="gainSlider" min="-15" max="15" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Freq:</label>
+                                <input type="number" class="freqInput" step="1" value="12000">
+                                <input type="range" class="freqSlider" min="0" max="100" step="1" value="12000">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Q:</label>
+                                <input type="number" class="qInput" step="0.1" value="1">
+                                <input type="range" class="qSlider" min="0" max="100" step="0.1" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- This is the controls for High Shelf -->
+                    <div class="listItem">
+                        <span class="bandLabel">High Shelf</span>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Gain:</label>
+                                <input type="number" class="gainInput" step="0.1" value="0">
+                                <input type="range" class="gainSlider" min="-15" max="15" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Freq:</label>
+                                <input type="number" class="freqInput" step="1" value="12000">
+                                <input type="range" class="freqSlider" min="0" max="100" step="1" value="12000">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Q:</label>
+                                <input type="number" class="qInput" step="0.1" value="1">
+                                <input type="range" class="qSlider" min="0" max="100" step="0.1" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- This is the controls for Low Cut -->
+                    <div class="listItem">
+                        <span class="bandLabel">Low Cut</span>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Gain:</label>
+                                <input type="number" class="gainInput" step="0.1" value="0">
+                                <input type="range" class="gainSlider" min="-15" max="15" step="0.1" value="0">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Freq:</label>
+                                <input type="number" class="freqInput" step="1" value="12000">
+                                <input type="range" class="freqSlider" min="0" max="100" step="1" value="12000">
+                            </div>
+                        </div>
+                        <div class="controlRow">
+                            <div class="inputSliderRow">
+                                <label>Q:</label>
+                                <input type="number" class="qInput" step="0.1" value="1">
+                                <input type="range" class="qSlider" min="0" max="100" step="0.1" value="1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="bottomInfo">
+                <span>Parametric EQ Demo version 0.1</span>
+            </div>
+        </div>
+
+        <div id="settingsModal">
+            <div id="settingsModalContent" class="modalContent">
+                <button id="closeSettingsModal">&times;</button>
+                <h2>Settings</h2>
+                <p>Adjust your parameters here</p>
+                <p>Adjust your parameters here</p>
+                <p>Adjust your parameters here</p>
+                <p>Adjust your parameters here</p>
+                <p>Adjust your parameters here</p>
+            </div>
+        </div>
+
+        <div id="saveModal" class="modal" style="display:none;">
+            <div id="saveModalContent" class="modalContent">
+                <h3>Save EQ Profile</h3>
+                <input type="text" id="saveFileName" placeholder="Enter file name">
+                <button id="confirmSaveButton">Save</button>
+                <button id="closeSaveModal">&times;</button>
+            </div>
+        </div>
+
+        <div id="loadModal" class="modal" style="display:none;">
+            <div id="loadModalContent" class="modalContent">
+                <h3>Load EQ Profile</h3>
+                <ul id="profileList"></ul>
+                <div style="margin-top:15px;">
+                    <button id="closeLoadModal">&times;</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="constants.js"></script>
+        <script src="main.js"></script>
+    <div id="toast-container"></div>
+</body>
+
+</html>
