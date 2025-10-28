@@ -158,6 +158,29 @@ async function saveStateToServer() {
     }
 }
 
+// --- Debounced save wrapper ---
+let pendingSave = false;
+let lastSaveTime = 0;
+const SAVE_INTERVAL_MS = 150; // minimum gap between writes
+const SAVE_IDLE_MS = 150;     // wait this long after last change to flush
+
+function scheduleSave() {
+    pendingSave = true;
+    lastSaveTime = Date.now();
+}
+
+// This runs in a loop and decides when to actually push to Firebase
+setInterval(async () => {
+    if (!pendingSave) return;
+
+    // only send if enough time passed since last change
+    const sinceLastChange = Date.now() - lastSaveTime;
+    if (sinceLastChange >= SAVE_IDLE_MS) {
+        pendingSave = false;
+        await saveStateToServer();
+    }
+}, 50);
+
 async function checkServerConnection() {
     try {
         const url = getFirebaseUrl();
@@ -436,7 +459,7 @@ controlButtons.forEach((button, i) => {
         button.classList.toggle('active', bands[i].enabled);
         updateListItemState();
         drawScene();
-        saveStateToServer();
+        scheduleSave();
     });
 });
 
@@ -469,7 +492,7 @@ function powerStateUpdate() {
 
     updateListItemState();
     drawScene();
-    saveStateToServer();
+    scheduleSave();
 };
 
 closeSettingsModal.addEventListener('click', () => {
@@ -726,7 +749,7 @@ function resetEQ() {
     updateListItemState();
 
     drawScene();
-    saveStateToServer();
+    scheduleSave();
 }
 
 listItems.forEach((item, i) => {
@@ -742,7 +765,7 @@ listItems.forEach((item, i) => {
         listGainInput.value = listGainSlider.value;
         bands[i].gain = +listGainSlider.value;
         drawScene();
-        saveStateToServer();
+        scheduleSave();
     });
     listGainInput.addEventListener('change', () => {
         let val = parseFloat(listGainInput.value);
@@ -752,7 +775,7 @@ listItems.forEach((item, i) => {
         listGainSlider.value = val;
         bands[i].gain = val;
         drawScene();
-        saveStateToServer();
+        scheduleSave();
     });
 
     // --- Frequency sync (logarithmic) ---
@@ -762,7 +785,7 @@ listItems.forEach((item, i) => {
         listFreqInput.value = Math.round(freq);
         bands[i].freq = freq;
         drawScene();
-        saveStateToServer();
+        scheduleSave();
     });
     listFreqInput.addEventListener('change', () => {
         let val = parseFloat(listFreqInput.value);
@@ -773,7 +796,7 @@ listItems.forEach((item, i) => {
         listFreqSlider.value = fraction * 100;
         bands[i].freq = val;
         drawScene();
-        saveStateToServer();
+        scheduleSave();
     });
 
 
@@ -783,7 +806,7 @@ listItems.forEach((item, i) => {
         listQInput.value = Q.toFixed(2);
         bands[i].Q = Q;
         drawScene();
-        saveStateToServer();
+        scheduleSave();
     });
     listQInput.addEventListener('change', () => {
         let val = parseFloat(listQInput.value);
@@ -793,7 +816,7 @@ listItems.forEach((item, i) => {
         listQSlider.value = qToSliderValue(val) * 100;
         bands[i].Q = val;
         drawScene();
-        saveStateToServer();
+        scheduleSave();
     });
 
 });
@@ -812,7 +835,7 @@ listItems.forEach((item, i) => {
         highlightBandListItem(selectedBand);
         drawScene();
         updateBandControls(i);
-        saveStateToServer();
+        scheduleSave();
     });
 });
 
@@ -891,7 +914,7 @@ eqCanvas.addEventListener('wheel', e => {
     const bandIndex = bands.indexOf(band);
     if (bandIndex !== -1) updateBandControls(bandIndex);
 
-    saveStateToServer();
+    scheduleSave();
 });
 
 const onDocMouseMove = e => {
@@ -919,7 +942,7 @@ const onDocMouseMove = e => {
 };
 
 const onDocMouseUp = () => {
-    if (draggingBand) saveStateToServer();
+    if (draggingBand) scheduleSave();
     draggingBand = null;
 };
 
@@ -932,7 +955,7 @@ gainSlider.addEventListener('input', () => {
     gainInput.value = overallGain.toFixed(1);
     gainValue.innerText = `${overallGain.toFixed(1)} dB`;
     drawScene();
-    saveStateToServer();
+    scheduleSave();
 });
 
 gainInput.addEventListener('change', () => {
@@ -946,7 +969,7 @@ gainInput.addEventListener('change', () => {
     gainValue.innerText = `${overallGain.toFixed(1)} dB`;
     gainInput.value = overallGain.toFixed(1);
     drawScene();
-    saveStateToServer();
+    scheduleSave();
 });
 
 const updateCanvasCursor = e => {
