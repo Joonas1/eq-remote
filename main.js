@@ -301,14 +301,18 @@ async function updateFullConnectionStatus() {
     }
 
     // --- 4. Update logical connection flag ---
-    connection = firebaseReachable; // overlay follows DB connectivity only
+    const espConnected = esp32Online && (Date.now() - esp32LastSeen < 15000);
+    connection = firebaseReachable; // only DB affects overlay visibility
     powerStateUpdate();
 
-    // --- 5. Optional LED bar update ---
-    const bar = document.getElementById("connectionBar");
-    if (bar) {
-        bar.classList.toggle("firebase-connected", firebaseReachable);
-        bar.classList.toggle("esp32-connected", esp32Online && (Date.now() - esp32LastSeen < 15000));
+    // --- 5. Update ESP32 badge text ---
+    if (!firebaseReachable) {
+        el.textContent = "⚠️ Firebase unreachable";
+    } else if (espConnected) {
+        el.textContent = "🟢 ESP32 Connected (via Firebase)";
+    } else {
+        const secs = esp32LastSeen ? Math.floor((Date.now() - esp32LastSeen) / 1000) : "?";
+        el.textContent = `🔴 ESP32 Offline (last seen ${secs}s ago)`;
     }
 }
 
