@@ -525,10 +525,6 @@ if (firebaseUrlInput) {
 if (saveSettingsButton) {
     saveSettingsButton.addEventListener('click', () => {
         const newUrl = firebaseUrlInput.value.trim();
-        if (!newUrl.startsWith('https://') || !newUrl.includes('firebasedatabase.app')) {
-            showToast('❌ Invalid Firebase URL', 'error');
-            return;
-        }
         setFirebaseUrl(newUrl);
     });
 }
