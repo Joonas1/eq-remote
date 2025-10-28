@@ -230,13 +230,18 @@
             <div id="settingsModalContent" class="modalContent">
                 <h3>Settings</h3>
 
-                <label for="firebaseUrlInput">Firebase URL:</label>
-                <input id="firebaseUrlInput" type="text" placeholder="firebasedatabase.app/" /><br><br>
+                <div class="formRow">
+                    <label for="firebaseUrlInput">Firebase URL:</label>
+                    <input id="firebaseUrlInput" type="text" placeholder="firebasedatabase.app/" />
+                </div>
 
-                <label for="firebaseAuthInput">Firebase Auth Secret:</label>
-                <input id="firebaseAuthInput" type="text" placeholder="Database secret" /><br><br>
-
-                <button id="saveSettingsButton">Save</button>
+                <div class="formRow">
+                    <label for="firebaseAuthInput">Firebase Auth Secret:</label>
+                    <input id="firebaseAuthInput" type="text" placeholder="Database secret" />
+                </div>
+                <div class="buttonRow">
+                    <button id="saveSettingsButton">Save</button>
+                </div>
                 <button id="closeSettingsModal">&times;</button>
             </div>
         </div>
