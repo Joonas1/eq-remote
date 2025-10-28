@@ -185,7 +185,7 @@ async function saveFullStateToServer(filename = "default.json") {
                 type: b.type,
                 freq: Math.round(b.freq),
                 gain: Math.round(b.gain * 10) / 10,
-                Q:    Math.round(b.Q * 10) / 10,
+                Q: Math.round(b.Q * 10) / 10,
                 enabled: b.enabled
             })),
             filename,
@@ -215,7 +215,7 @@ function buildCurrentStateObject(filename = "state.json") {
             type: b.type,
             freq: Math.round(b.freq),
             gain: Math.round(b.gain * 10) / 10,
-            Q:    Math.round(b.Q * 10) / 10,
+            Q: Math.round(b.Q * 10) / 10,
             enabled: b.enabled
         })),
         filename,
@@ -256,9 +256,24 @@ async function checkServerConnection() {
     }
     console.log('Firebase connection status:', connection);
     powerStateUpdate();
+    updateConnectionStatus();
 }
 
 setInterval(checkServerConnection, 1000);
+
+function updateConnectionStatus() {
+    const el = document.getElementById('connectionStatus');
+    if (!el) return;
+    if (connection) {
+        el.textContent = "🟢 ESP32 Connected";
+        el.classList.add("connected");
+        el.classList.remove("disconnected");
+    } else {
+        el.textContent = "🔴 ESP32 Disconnected";
+        el.classList.add("disconnected");
+        el.classList.remove("connected");
+    }
+}
 
 // --- Layout ---
 function setContainerSize() {
@@ -621,7 +636,7 @@ confirmSaveButton.addEventListener('click', async () => {
             type: b.type,
             freq: Math.round(b.freq),
             gain: Math.round(b.gain * 10) / 10,
-            Q:    Math.round(b.Q * 10) / 10,
+            Q: Math.round(b.Q * 10) / 10,
             enabled: b.enabled
         })),
         savedAt: new Date().toISOString()
@@ -1034,8 +1049,9 @@ async function init() {
     bands.forEach((band, index) => updateBandControls(index));
     powerStateUpdate();
     setContainerSize(CANVAS_WIDTH, CANVAS_HEIGHT);
-    currentProfile = localStorage.getItem('lastProfile') || 'default';
+    currentProfile = localStorage.getItem('lastProfile') || 'Default';
     updateProfileNameDisplay();
+    updateConnectionStatus();
 }
 
 init();

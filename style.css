@@ -699,3 +699,28 @@ body {
 .toast.error {
   background-color: #dc3545; /* red */
 }
+
+#connectionStatus {
+  position: fixed;
+  bottom: 15px;
+  left: 20px;
+  font-size: 14px;
+  color: #ccc;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  z-index: 2000;
+  font-family: monospace;
+  transition: color 0.3s, background-color 0.3s;
+}
+
+#connectionStatus.connected {
+  color: #00ff88;
+  background-color: rgba(0, 80, 0, 0.5);
+}
+
+#connectionStatus.disconnected {
+  color: #ff4444;
+  background-color: rgba(80, 0, 0, 0.5);
+}
