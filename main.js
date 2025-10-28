@@ -767,6 +767,9 @@ function resetEQ() {
 
     bands.forEach((band, index) => updateBandControls(index));
     updateListItemState();
+    currentProfile = 'default';
+    updateProfileNameDisplay();
+    showToast("✅ EQ reset to defaults", "success");
 
     drawScene();
 
@@ -1031,7 +1034,7 @@ async function init() {
     bands.forEach((band, index) => updateBandControls(index));
     powerStateUpdate();
     setContainerSize(CANVAS_WIDTH, CANVAS_HEIGHT);
-    currentProfile = localStorage.getItem('lastProfile') || 'Default';
+    currentProfile = localStorage.getItem('lastProfile') || 'default';
     updateProfileNameDisplay();
 }
 
