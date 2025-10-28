@@ -12,8 +12,12 @@ function getFirebaseUrl() {
         console.warn("No Firebase URL set. Running in offline mode.");
         return null;
     }
-    return FIREBASE_BASE + '/state.json';
+
+    const auth = localStorage.getItem('firebaseAuth');
+    const url = FIREBASE_BASE + '/state.json';
+    return auth ? `${url}?auth=${auth}` : url;
 }
+
 
 function setFirebaseUrl(newUrl) {
     if (newUrl && newUrl.endsWith('/')) newUrl = newUrl.slice(0, -1);
@@ -515,19 +519,40 @@ settingButtons.forEach((button, i) => {
 
 // --- Settings Modal Logic ---
 const firebaseUrlInput = document.getElementById('firebaseUrlInput');
+const firebaseAuthInput = document.getElementById('firebaseAuthInput');
 const saveSettingsButton = document.getElementById('saveSettingsButton');
 
-if (firebaseUrlInput) {
-    // load current saved URL
-    firebaseUrlInput.value = localStorage.getItem('firebaseBase') || '';
-}
+// Load current saved URL + Auth Secret
+if (firebaseUrlInput) firebaseUrlInput.value = localStorage.getItem('firebaseBase') || '';
+if (firebaseAuthInput) firebaseAuthInput.value = localStorage.getItem('firebaseAuth') || '';
 
 if (saveSettingsButton) {
     saveSettingsButton.addEventListener('click', () => {
         const newUrl = firebaseUrlInput.value.trim();
-        setFirebaseUrl(newUrl);
+        const newAuth = firebaseAuthInput.value.trim();
+
+        if (!newUrl.startsWith('https://') || !newUrl.includes('firebaseio.com')) {
+            showToast('❌ Invalid Firebase URL', 'error');
+            return;
+        }
+
+        // Save both locally
+        localStorage.setItem('firebaseBase', newUrl);
+        localStorage.setItem('firebaseAuth', newAuth);
+
+        // Update runtime variables
+        FIREBASE_BASE = newUrl;
+        STATE_URL = `${newUrl}/state.json`;
+        showToast("✅ Firebase settings saved", "success");
+
+        settingsModal.style.display = 'none';
+
+        // Reload data after saving
+        loadStateFromServer();
+        checkServerConnection();
     });
 }
+
 
 
 // --- Save file ---
