@@ -7,17 +7,37 @@ const gainToY = gain => eqCanvas.height / 2 - (gain / 12) * (eqCanvas.height / 2
 let FIREBASE_BASE = localStorage.getItem('firebaseBase') || '';
 let STATE_URL = FIREBASE_BASE ? FIREBASE_BASE + '/state.json' : null;
 
+function getAuthQuery() {
+    const auth = localStorage.getItem('firebaseAuth');
+    return auth ? `?auth=${auth}` : '';
+}
+
 function getFirebaseUrl() {
     if (!FIREBASE_BASE) {
         console.warn("No Firebase URL set. Running in offline mode.");
         return null;
     }
-
-    const auth = localStorage.getItem('firebaseAuth');
-    const url = FIREBASE_BASE + '/state.json';
-    return auth ? `${url}?auth=${auth}` : url;
+    return FIREBASE_BASE + '/state.json' + getAuthQuery();
 }
 
+// generic field updater (granular writes!)
+async function updateFirebaseField(path, value) {
+    if (!FIREBASE_BASE) return;
+    const url = `${FIREBASE_BASE}/state/${path}.json${getAuthQuery()}`;
+
+    try {
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(value)
+        });
+        if (!res.ok) {
+            console.error('Firebase update failed:', res.status, await res.text());
+        }
+    } catch (err) {
+        console.error('Firebase update error:', err);
+    }
+}
 
 function setFirebaseUrl(newUrl) {
     if (newUrl && newUrl.endsWith('/')) newUrl = newUrl.slice(0, -1);
@@ -28,7 +48,6 @@ function setFirebaseUrl(newUrl) {
     loadStateFromServer();
     checkServerConnection();
 }
-
 
 // --- DOM ---
 const eqContainer = $('eqContainer');
@@ -66,26 +85,28 @@ const {
     CIRCLE_RADIUS, BANDS, LABEL_FONT, POWER
 } = window.CONSTANTS;
 
-// Get the root element
+// set theme vars
 const root = document.documentElement;
-
-// Set --color-accent using CURVE_COLOR from CONSTANTS
 root.style.setProperty('--color-accent', window.CONSTANTS.CURVE_COLOR);
 root.style.setProperty('--color-inactive', window.CONSTANTS.CURVE_COLOR_OFF);
 root.style.setProperty('--color-muted', window.CONSTANTS.LABEL_COLOR);
 
-// --- Persistent State ---
-// --- Persistent State Helpers ---
-const BAND_KEYS = ['type', 'freq', 'gain', 'Q', 'enabled'];
+// --- State ---
+let bands = BANDS.map(b => ({ ...b, x: freqToPixel(b.freq), y: gainToY(b.gain) }));
+let overallGain = 0;
+let selectedBand = null;
+let draggingBand = null;
+let power = POWER;
+let connection = false;
+let currentProfile = 'Default';
 
-// Load EQ state from Firebase
+// --- Load state from Firebase (full GET once) ---
 async function loadStateFromServer() {
     try {
         const url = getFirebaseUrl();
-        if (!url) return; // skip if not set
+        if (!url) return;
 
         const res = await fetch(url);
-
         const data = await res.json();
 
         if (!data) {
@@ -123,76 +144,45 @@ async function loadStateFromServer() {
     }
 }
 
-// Save current EQ state to Firebase
-async function saveStateToServer() {
+// (optional) save whole snapshot (used for reset or manual save button)
+async function saveFullStateToServer(filename = "41.json") {
     try {
-        const base = FIREBASE_BASE;
-        const auth = localStorage.getItem('firebaseAuth') || '';
-        if (!base) return;
+        if (!FIREBASE_BASE) return;
 
-        // detect what changed
-        // for now, just push everything the UI might have updated
-        const updates = {};
+        const newState = {
+            gain: overallGain,
+            power: power,
+            bands: bands.map(b => ({
+                type: b.type,
+                freq: b.freq,
+                gain: b.gain,
+                Q: b.Q,
+                enabled: b.enabled
+            })),
+            filename,
+            version: 1
+        };
 
-        updates['gain'] = overallGain;
-        updates['power'] = power;
-        updates['bands'] = bands.map(b => ({
-            type: b.type,
-            freq: b.freq,
-            gain: b.gain,
-            Q: b.Q,
-            enabled: b.enabled
-        }));
-
-        // optional metadata
-        updates['filename'] = 'default.json';
-        updates['version'] = 1;
-
-        const url = `${base}/state.json${auth ? `?auth=${auth}` : ''}`;
+        const url = `${FIREBASE_BASE}/state.json${getAuthQuery()}`;
 
         const res = await fetch(url, {
-            method: 'PATCH',
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates)
+            body: JSON.stringify(newState)
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        console.log('✅ Firebase PATCH successful');
+        console.log("Saved full state to Firebase successfully");
     } catch (err) {
-        console.error('❌ Failed to save state:', err);
+        console.error("Failed to save full state:", err);
     }
 }
-
-// --- Debounced save wrapper ---
-let pendingSave = false;
-let lastSaveTime = 0;
-const SAVE_INTERVAL_MS = 150; // minimum gap between writes
-const SAVE_IDLE_MS = 150;     // wait this long after last change to flush
-
-function scheduleSave() {
-    pendingSave = true;
-    lastSaveTime = Date.now();
-}
-
-// This runs in a loop and decides when to actually push to Firebase
-setInterval(async () => {
-    if (!pendingSave) return;
-
-    // only send if enough time passed since last change
-    const sinceLastChange = Date.now() - lastSaveTime;
-    if (sinceLastChange >= SAVE_IDLE_MS) {
-        pendingSave = false;
-        await saveStateToServer();
-    }
-}, 50);
 
 async function checkServerConnection() {
     try {
         const url = getFirebaseUrl();
-        if (!url) return; // skip if not set
-
+        if (!url) return;
         const res = await fetch(url);
-
         connection = res.ok;
     } catch (e) {
         connection = false;
@@ -201,20 +191,10 @@ async function checkServerConnection() {
     powerStateUpdate();
 }
 
-// --- State ---
-let bands = BANDS.map(b => ({ ...b, x: freqToPixel(b.freq), y: gainToY(b.gain) }));
-let overallGain = 0;
-let selectedBand = null;
-let draggingBand = null;
-let power = POWER;
-let connection = false;
-let currentProfile = 'Default';
-
 setInterval(checkServerConnection, 1000);
 
 // --- Layout ---
 function setContainerSize() {
-
     setStyle(eqContainer, { width: CANVAS_WIDTH * 1.15 + 'px', height: CANVAS_HEIGHT * 1.2 + 'px' });
     setStyle(dbContainer, { width: CANVAS_WIDTH * 1.38 + 'px', height: CANVAS_HEIGHT + 'px', margin: '0 ' + CANVAS_WIDTH * 0.01 + 'px' });
     Object.assign(eqCanvas, { width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
@@ -222,13 +202,17 @@ function setContainerSize() {
 
     setStyle(topControls, { width: CANVAS_WIDTH + 'px', margin: CANVAS_HEIGHT * 0.04 + 'px ' + CANVAS_WIDTH * 0.05 + 'px' });
     controlButtons.forEach(btn => setStyle(btn, {
-        width: CANVAS_WIDTH / 7 + 'px', height: CANVAS_HEIGHT * 0.05 + 'px', fontSize: CANVAS_HEIGHT * 0.025 + 'px'
+        width: CANVAS_WIDTH / 7 + 'px',
+        height: CANVAS_HEIGHT * 0.05 + 'px',
+        fontSize: CANVAS_HEIGHT * 0.025 + 'px'
     }));
 
     setStyle(controlsContainer, { width: CANVAS_WIDTH * 0.25 + 'px', height: CANVAS_HEIGHT * 1.2 + 'px' });
     setStyle(topSettings, { width: CANVAS_WIDTH * 0.20 + 'px', margin: CANVAS_HEIGHT * 0.04 + 'px ' + CANVAS_WIDTH * 0.025 + 'px' });
     settingButtons.forEach(btn => setStyle(btn, {
-        width: (CANVAS_WIDTH * 0.20) / 4 + 'px', height: CANVAS_HEIGHT * 0.05 + 'px', fontSize: CANVAS_HEIGHT * 0.025 + 'px'
+        width: (CANVAS_WIDTH * 0.20) / 4 + 'px',
+        height: CANVAS_HEIGHT * 0.05 + 'px',
+        fontSize: CANVAS_HEIGHT * 0.025 + 'px'
     }));
 
     setStyle(bandInfo, {
@@ -374,32 +358,24 @@ function drawEQCurve() {
             ctx.stroke();
         }
     });
+}
 
-};
-
-// --- Logic ---
+// --- Math helpers ---
 function bandGainAtFreq(f, band) {
     const ratio = f / band.freq;
     const dist = Math.log2(ratio);
 
     switch (band.type) {
         case "bell":
-            // Q controls bandwidth: higher Q = narrower peak
             return band.gain * Math.exp(-0.5 * (dist * band.Q) ** 2);
-
         case "lowshelf":
-            return band.gain / (1 + Math.exp(8 * dist)); // Q not used
-
+            return band.gain / (1 + Math.exp(8 * dist));
         case "highshelf":
-            return band.gain / (1 + Math.exp(-8 * dist)); // Q not used
-
+            return band.gain / (1 + Math.exp(-8 * dist));
         case "lowcut":
-            // Q affects slope sharpness
             return -60 / (1 + Math.exp(8 * dist * band.Q));
-
         case "highcut":
             return -60 / (1 + Math.exp(-8 * dist * band.Q));
-
         default:
             return 0;
     }
@@ -416,8 +392,7 @@ function freqToPixel(freq) {
 }
 
 function freqSliderToFreq(sliderValue, minFreq = 10, maxFreq = 30000) {
-    // sliderValue: 0–1
-    return minFreq * Math.pow(maxFreq / minFreq, sliderValue);
+    return minFreq * Math.pow(maxFreq / minFreq, sliderValue); // slider 0–1
 }
 
 function freqToSliderValue(freq, minFreq = 10, maxFreq = 30000) {
@@ -432,6 +407,7 @@ function qToSliderValue(Q, minQ = 0.1, maxQ = 10) {
     return Math.log(Q / minQ) / Math.log(maxQ / minQ);
 }
 
+// --- UI helpers ---
 function highlightBandListItem(band) {
     listItems.forEach((item, i) => {
         if (bands[i] === band && bands[i].enabled) {
@@ -457,6 +433,8 @@ function updateListItemState() {
 }
 
 // --- Events ---
+
+// toggle band enable
 controlButtons.forEach((button, i) => {
     button.addEventListener('click', () => {
         if (!power || !connection) return;
@@ -464,15 +442,17 @@ controlButtons.forEach((button, i) => {
         button.classList.toggle('active', bands[i].enabled);
         updateListItemState();
         drawScene();
-        scheduleSave();
+        updateFirebaseField(`bands/${i}/enabled`, bands[i].enabled);
     });
 });
 
+// power toggle
 powerButton.addEventListener('click', () => {
     if (!connection) return;
     power = !power;
     powerButton.classList.toggle('active', power);
     powerStateUpdate();
+    updateFirebaseField('power', power);
 });
 
 function powerStateUpdate() {
@@ -497,49 +477,32 @@ function powerStateUpdate() {
 
     updateListItemState();
     drawScene();
-    scheduleSave();
-};
+}
 
-closeSettingsModal.addEventListener('click', () => {
-    settingsModal.style.display = 'none';
-});
-
-settingsModal.addEventListener('click', e => {
-    if (e.target === settingsModal) settingsModal.style.display = 'none';
-});
-
-closeSaveModal.addEventListener('click', () => {
-    saveModal.style.display = 'none';
-});
-
-saveModal.addEventListener('click', e => {
-    if (e.target === saveModal) saveModal.style.display = 'none';
-});
-
-closeLoadModal.addEventListener('click', () => {
-    loadModal.style.display = 'none';
-});
-
-loadModal.addEventListener('click', e => {
-    if (e.target === loadModal) loadModal.style.display = 'none';
-});
+// settings modals etc (unchanged except no saveStateToServer calls)
+closeSettingsModal.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+settingsModal.addEventListener('click', e => { if (e.target === settingsModal) settingsModal.style.display = 'none'; });
+closeSaveModal.addEventListener('click', () => { saveModal.style.display = 'none'; });
+saveModal.addEventListener('click', e => { if (e.target === saveModal) saveModal.style.display = 'none'; });
+closeLoadModal.addEventListener('click', () => { loadModal.style.display = 'none'; });
+loadModal.addEventListener('click', e => { if (e.target === loadModal) loadModal.style.display = 'none'; });
 
 settingButtons.forEach((button, i) => {
     button.addEventListener('click', () => {
-        if (!connection && i != 3) return;
+        if (!connection && i !== 3) return;
         switch (i) {
-            case 0: // Save
+            case 0: // Save profile (opens modal)
                 saveFileName.value = '';
                 saveModal.style.display = 'flex';
                 saveFileName.focus();
                 break;
-            case 1: // Load
+            case 1: // Load profile
                 openLoadModal();
                 break;
-            case 2: // Reset
+            case 2: // Reset EQ to defaults
                 resetEQ();
                 break;
-            case 3: // Settings
+            case 3: // Settings modal
                 settingsModal.style.display = 'flex';
                 break;
         }
@@ -551,7 +514,6 @@ const firebaseUrlInput = document.getElementById('firebaseUrlInput');
 const firebaseAuthInput = document.getElementById('firebaseAuthInput');
 const saveSettingsButton = document.getElementById('saveSettingsButton');
 
-// Load current saved URL + Auth Secret
 if (firebaseUrlInput) firebaseUrlInput.value = localStorage.getItem('firebaseBase') || '';
 if (firebaseAuthInput) firebaseAuthInput.value = localStorage.getItem('firebaseAuth') || '';
 
@@ -560,26 +522,21 @@ if (saveSettingsButton) {
         const newUrl = firebaseUrlInput.value.trim();
         const newAuth = firebaseAuthInput.value.trim();
 
-        // Save both locally
         localStorage.setItem('firebaseBase', newUrl);
         localStorage.setItem('firebaseAuth', newAuth);
 
-        // Update runtime variables
         FIREBASE_BASE = newUrl;
         STATE_URL = `${newUrl}/state.json`;
         showToast("✅ Firebase settings saved", "success");
 
         settingsModal.style.display = 'none';
 
-        // Reload data after saving
         loadStateFromServer();
         checkServerConnection();
     });
 }
 
-
-
-// --- Save file (to /profiles/{filename}.json) ---
+// --- Save profile to /profiles/filename.json ---
 confirmSaveButton.addEventListener('click', async () => {
     const filename = saveFileName.value.trim();
     if (!filename) {
@@ -601,14 +558,12 @@ confirmSaveButton.addEventListener('click', async () => {
     };
 
     try {
-        const base = localStorage.getItem('firebaseBase');
-        const auth = localStorage.getItem('firebaseAuth') || '';
-        if (!base) {
+        if (!FIREBASE_BASE) {
             showToast('❌ Firebase URL not set', 'error');
             return;
         }
 
-        const url = `${base}/profiles/${filename}.json${auth ? `?auth=${auth}` : ''}`;
+        const url = `${FIREBASE_BASE}/profiles/${filename}.json${getAuthQuery()}`;
         const res = await fetch(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -629,18 +584,15 @@ confirmSaveButton.addEventListener('click', async () => {
     }
 });
 
-
-// --- Load Profiles (list all under /profiles/) ---
+// --- Load profile list ---
 async function openLoadModal() {
     try {
-        const base = localStorage.getItem('firebaseBase');
-        const auth = localStorage.getItem('firebaseAuth') || '';
-        if (!base) {
+        if (!FIREBASE_BASE) {
             showToast('❌ Firebase URL not set', 'error');
             return;
         }
 
-        const url = `${base}/profiles.json${auth ? `?auth=${auth}` : ''}`;
+        const url = `${FIREBASE_BASE}/profiles.json${getAuthQuery()}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -670,18 +622,15 @@ async function openLoadModal() {
     }
 }
 
-
-// --- Load a single profile from Firebase ---
+// --- Load one profile ---
 async function loadProfile(filename) {
     try {
-        const base = localStorage.getItem('firebaseBase');
-        const auth = localStorage.getItem('firebaseAuth') || '';
-        if (!base) {
+        if (!FIREBASE_BASE) {
             showToast('❌ Firebase URL not set', 'error');
             return;
         }
 
-        const url = `${base}/profiles/${filename}.json${auth ? `?auth=${auth}` : ''}`;
+        const url = `${FIREBASE_BASE}/profiles/${filename}.json${getAuthQuery()}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -713,28 +662,21 @@ async function loadProfile(filename) {
     }
 }
 
-
-
-
+// toast helper
 function showToast(message, type = 'success', duration = 3000) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerText = message;
-
     container.appendChild(toast);
-
-    // Trigger animation
     setTimeout(() => toast.classList.add('show'), 50);
-
-    // Remove after duration
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 400);
     }, duration);
 }
 
-// --- Reset EQ ---
+// Reset EQ to defaults (and push full new preset to /state)
 function resetEQ() {
     bands = BANDS.map(b => ({ ...b, x: freqToPixel(b.freq), y: gainToY(b.gain) }));
     overallGain = 0;
@@ -754,9 +696,12 @@ function resetEQ() {
     updateListItemState();
 
     drawScene();
-    scheduleSave();
+
+    // after a hard reset we *do* send the full snapshot
+    saveFullStateToServer("reset.json");
 }
 
+// per-band control panel bindings (gain/freq/Q sliders + inputs)
 listItems.forEach((item, i) => {
     const listGainInput = item.querySelector('.gainInput');
     const listGainSlider = item.querySelector('.gainSlider');
@@ -765,85 +710,85 @@ listItems.forEach((item, i) => {
     const listQInput = item.querySelector('.qInput');
     const listQSlider = item.querySelector('.qSlider');
 
-    // Sync gain
+    // gain slider
     listGainSlider.addEventListener('input', () => {
-        listGainInput.value = listGainSlider.value;
         bands[i].gain = +listGainSlider.value;
+        listGainInput.value = listGainSlider.value;
         drawScene();
-        scheduleSave();
+        updateFirebaseField(`bands/${i}/gain`, bands[i].gain);
     });
+
+    // gain input
     listGainInput.addEventListener('change', () => {
         let val = parseFloat(listGainInput.value);
         if (isNaN(val)) val = 0;
         val = Math.min(Math.max(val, -15), 15);
+        bands[i].gain = val;
         listGainInput.value = val;
         listGainSlider.value = val;
-        bands[i].gain = val;
         drawScene();
-        scheduleSave();
+        updateFirebaseField(`bands/${i}/gain`, bands[i].gain);
     });
 
-    // --- Frequency sync (logarithmic) ---
+    // freq slider (log)
     listFreqSlider.addEventListener('input', () => {
-        const fraction = listFreqSlider.value / 100; // 0–100 slider
-        const freq = freqSliderToFreq(fraction); // logarithmic mapping
-        listFreqInput.value = Math.round(freq);
+        const fraction = listFreqSlider.value / 100;
+        const freq = freqSliderToFreq(fraction);
         bands[i].freq = freq;
+        listFreqInput.value = Math.round(freq);
         drawScene();
-        scheduleSave();
+        updateFirebaseField(`bands/${i}/freq`, bands[i].freq);
     });
+
+    // freq input
     listFreqInput.addEventListener('change', () => {
         let val = parseFloat(listFreqInput.value);
         if (isNaN(val)) val = 20;
-        val = Math.min(Math.max(val, 10), 30000); // clamp to min/max frequency
-        listFreqInput.value = Math.round(val);
-        const fraction = freqToSliderValue(val);
-        listFreqSlider.value = fraction * 100;
+        val = Math.min(Math.max(val, 10), 30000);
         bands[i].freq = val;
+        listFreqInput.value = Math.round(val);
+        listFreqSlider.value = freqToSliderValue(val) * 100;
         drawScene();
-        scheduleSave();
+        updateFirebaseField(`bands/${i}/freq`, bands[i].freq);
     });
 
-
-    // --- Q sync ---
+    // Q slider
     listQSlider.addEventListener('input', () => {
-        const Q = qSliderToQ(listQSlider.value / 100); // map slider fraction → Q
-        listQInput.value = Q.toFixed(2);
+        const Q = qSliderToQ(listQSlider.value / 100);
         bands[i].Q = Q;
+        listQInput.value = Q.toFixed(2);
         drawScene();
-        scheduleSave();
+        updateFirebaseField(`bands/${i}/Q`, bands[i].Q);
     });
+
+    // Q input
     listQInput.addEventListener('change', () => {
         let val = parseFloat(listQInput.value);
         if (isNaN(val)) val = 1;
-        val = Math.min(Math.max(val, 0.1), 10); // clamp Q
+        val = Math.min(Math.max(val, 0.1), 10);
+        bands[i].Q = val;
         listQInput.value = val.toFixed(2);
         listQSlider.value = qToSliderValue(val) * 100;
-        bands[i].Q = val;
         drawScene();
-        scheduleSave();
+        updateFirebaseField(`bands/${i}/Q`, bands[i].Q);
     });
-
 });
 
+// click row to select band / highlight
 listItems.forEach((item, i) => {
     item.addEventListener('click', e => {
-        // Ignore clicks on inputs or sliders
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
 
         const band = bands[i];
         if (!band.enabled) return;
 
-        // Toggle selection
         selectedBand = (selectedBand === band) ? null : band;
 
         highlightBandListItem(selectedBand);
         drawScene();
         updateBandControls(i);
-        scheduleSave();
     });
 });
-
 
 function updateBandControls(index) {
     const band = bands[index];
@@ -856,20 +801,17 @@ function updateBandControls(index) {
     const listQInput = listItem.querySelector('.qInput');
     const listQSlider = listItem.querySelector('.qSlider');
 
-    // Update gain
     listGainInput.value = band.gain.toFixed(1);
     listGainSlider.value = band.gain.toFixed(1);
 
-    // Update frequency (logarithmic)
     listFreqInput.value = Math.round(band.freq);
     listFreqSlider.value = freqToSliderValue(band.freq) * 100;
 
-    // Update Q (optional logarithmic)
     listQInput.value = band.Q.toFixed(2);
     listQSlider.value = qToSliderValue(band.Q) * 100;
 }
 
-// --- Dragging and Selection ---
+// canvas drag + wheel to edit band
 eqCanvas.addEventListener('mousedown', e => {
     if (!power || !connection) return;
     const rect = eqCanvas.getBoundingClientRect();
@@ -877,7 +819,6 @@ eqCanvas.addEventListener('mousedown', e => {
     const mouseY = (e.clientY - rect.top) * eqCanvas.height / rect.height;
 
     const hitRadius = CIRCLE_RADIUS * 2;
-
     const clickedBand = bands.find(b => b.enabled && Math.hypot(mouseX - b.x, mouseY - b.y) <= hitRadius);
 
     if (clickedBand) {
@@ -888,40 +829,36 @@ eqCanvas.addEventListener('mousedown', e => {
         draggingBand = null;
     }
 
-    highlightBandListItem(selectedBand); // <-- highlight corresponding list item
+    highlightBandListItem(selectedBand);
     drawScene();
 });
 
-
-
-// --- Scroll to adjust Q ---
+// scroll to adjust Q
 eqCanvas.addEventListener('wheel', e => {
     if (!power || !connection) return;
-    e.preventDefault(); // prevent page scroll
+    e.preventDefault();
 
     const rect = eqCanvas.getBoundingClientRect();
     const mouseX = (e.clientX - rect.left) * eqCanvas.width / rect.width;
     const mouseY = (e.clientY - rect.top) * eqCanvas.height / rect.height;
 
-    // Check if mouse is over any enabled band
     const hitRadius = CIRCLE_RADIUS * 1.5;
     const band = bands.find(b => b.enabled && Math.hypot(mouseX - b.x, mouseY - b.y) <= hitRadius);
-
     if (!band) return;
 
-    // Adjust Q
-    const delta = e.deltaY < 0 ? 0.1 : -0.1; // scroll up increases, down decreases
-    band.Q = Math.min(Math.max(band.Q + delta, 0.1), 10); // clamp between 0.1 and 10
+    const delta = e.deltaY < 0 ? 0.1 : -0.1;
+    band.Q = Math.min(Math.max(band.Q + delta, 0.1), 10);
 
     drawScene();
 
-    // Update controls
     const bandIndex = bands.indexOf(band);
-    if (bandIndex !== -1) updateBandControls(bandIndex);
-
-    scheduleSave();
+    if (bandIndex !== -1) {
+        updateBandControls(bandIndex);
+        updateFirebaseField(`bands/${bandIndex}/Q`, band.Q);
+    }
 });
 
+// drag to move freq / gain
 const onDocMouseMove = e => {
     if (!power || !connection) return;
     if (!draggingBand) return;
@@ -937,32 +874,45 @@ const onDocMouseMove = e => {
 
     const maxDb = 15;
     const yCenter = eqCanvas.height / 2;
-    draggingBand.gain = Math.min(Math.max(((yCenter - mouseY) / (eqCanvas.height / 2)) * maxDb - overallGain, -maxDb), maxDb);
+    draggingBand.gain = Math.min(
+        Math.max(((yCenter - mouseY) / (eqCanvas.height / 2)) * maxDb - overallGain, -maxDb),
+        maxDb
+    );
     draggingBand.y = gainToY(draggingBand.gain + overallGain);
 
     drawScene();
 
     const bandIndex = bands.indexOf(draggingBand);
-    if (bandIndex !== -1) updateBandControls(bandIndex);
+    if (bandIndex !== -1) {
+        updateBandControls(bandIndex);
+    }
 };
 
 const onDocMouseUp = () => {
-    if (draggingBand) scheduleSave();
+    if (draggingBand) {
+        const bandIndex = bands.indexOf(draggingBand);
+        if (bandIndex !== -1) {
+            updateFirebaseField(`bands/${bandIndex}/freq`, bands[bandIndex].freq);
+            updateFirebaseField(`bands/${bandIndex}/gain`, bands[bandIndex].gain);
+        }
+    }
     draggingBand = null;
 };
 
 document.addEventListener('mousemove', onDocMouseMove);
 document.addEventListener('mouseup', onDocMouseUp);
 
+// master gain slider
 gainSlider.addEventListener('input', () => {
     if (!power || !connection) return;
     overallGain = +gainSlider.value;
     gainInput.value = overallGain.toFixed(1);
     gainValue.innerText = `${overallGain.toFixed(1)} dB`;
     drawScene();
-    scheduleSave();
+    updateFirebaseField('gain', overallGain);
 });
 
+// master gain text box
 gainInput.addEventListener('change', () => {
     if (!power || !connection) return;
     let val = parseFloat(gainInput.value);
@@ -974,15 +924,15 @@ gainInput.addEventListener('change', () => {
     gainValue.innerText = `${overallGain.toFixed(1)} dB`;
     gainInput.value = overallGain.toFixed(1);
     drawScene();
-    scheduleSave();
+    updateFirebaseField('gain', overallGain);
 });
 
+// cursor hinting
 const updateCanvasCursor = e => {
     if (!power || !connection) {
         eqCanvas.style.cursor = 'default';
         return;
     }
-
     const rect = eqCanvas.getBoundingClientRect();
     const mouseX = (e.clientX - rect.left) * eqCanvas.width / rect.width;
     const mouseY = (e.clientY - rect.top) * eqCanvas.height / rect.height;
@@ -992,14 +942,12 @@ const updateCanvasCursor = e => {
 
     eqCanvas.style.cursor = hoveredBand ? 'pointer' : 'default';
 };
-
 eqCanvas.addEventListener('mousemove', updateCanvasCursor);
 
 function updateProfileNameDisplay() {
     const el = document.getElementById('activeProfileName');
     if (el) el.textContent = currentProfile;
 }
-
 
 // --- Init ---
 async function init() {
