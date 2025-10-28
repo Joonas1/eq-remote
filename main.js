@@ -550,7 +550,7 @@ if (saveSettingsButton) {
 
 
 
-// --- Save file ---
+// --- Save file (to /profiles/{filename}.json) ---
 confirmSaveButton.addEventListener('click', async () => {
     const filename = saveFileName.value.trim();
     if (!filename) {
@@ -558,103 +558,123 @@ confirmSaveButton.addEventListener('click', async () => {
         return;
     }
 
-    const dataToSave = {
-        filename: saveFileName.value.trim(),
-        state: {
-            gain: overallGain,
-            power: power,
-            bands: bands.map(b => ({
-                type: b.type,
-                freq: b.freq,
-                gain: b.gain,
-                Q: b.Q,
-                enabled: b.enabled
-            }))
-        }
+    const newState = {
+        gain: overallGain,
+        power: power,
+        bands: bands.map(b => ({
+            type: b.type,
+            freq: b.freq,
+            gain: b.gain,
+            Q: b.Q,
+            enabled: b.enabled
+        })),
+        savedAt: new Date().toISOString()
     };
 
     try {
-        const url = getFirebaseUrl();
-        if (!url) return;
+        const base = localStorage.getItem('firebaseBase');
+        const auth = localStorage.getItem('firebaseAuth') || '';
+        if (!base) {
+            showToast('❌ Firebase URL not set', 'error');
+            return;
+        }
 
+        const url = `${base}/profiles/${filename}.json${auth ? `?auth=${auth}` : ''}`;
         const res = await fetch(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dataToSave)
+            body: JSON.stringify(newState)
         });
 
-        if (!res.ok) {
-            throw new Error(`Server error: ${res.status}`);
-        }
-
-
-        saveModal.style.display = 'none';
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         showToast(`✅ Saved as "${filename}"`, 'success');
+        saveModal.style.display = 'none';
     } catch (err) {
-        console.error(err);
+        console.error('Failed to save profile:', err);
         showToast('❌ Failed to save', 'error');
     }
 });
 
-// --- Load Profiles ---
+
+// --- Load Profiles (list all under /profiles/) ---
 async function openLoadModal() {
     try {
-        const res = await fetch('/saves');
-        if (!res.ok) throw new Error('Failed to fetch profiles');
+        const base = localStorage.getItem('firebaseBase');
+        const auth = localStorage.getItem('firebaseAuth') || '';
+        if (!base) {
+            showToast('❌ Firebase URL not set', 'error');
+            return;
+        }
 
-        const files = await res.json();
+        const url = `${base}/profiles.json${auth ? `?auth=${auth}` : ''}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
         const profileList = $('profileList');
         profileList.innerHTML = '';
 
-        files.forEach(file => {
-            const li = document.createElement('li');
-            li.textContent = file;
-            li.style.cursor = 'pointer';
-            li.addEventListener('click', () => loadProfile(file));
-            profileList.appendChild(li);
-        });
+        if (!data) {
+            profileList.innerHTML = '<li style="color:#888;">No profiles saved</li>';
+        } else {
+            Object.keys(data).forEach(name => {
+                const li = document.createElement('li');
+                li.textContent = name.replace('.json', '');
+                li.style.cursor = 'pointer';
+                li.addEventListener('click', () => {
+                    loadProfile(name);
+                    loadModal.style.display = 'none';
+                });
+                profileList.appendChild(li);
+            });
+        }
 
         loadModal.style.display = 'flex';
     } catch (err) {
-        console.error(err);
-        showToast('❌ Failed to load profiles', 'error');
+        console.error('Failed to load profile list:', err);
+        showToast('❌ Failed to list profiles', 'error');
     }
 }
 
+
+// --- Load a single profile from Firebase ---
 async function loadProfile(filename) {
     try {
-        console.log('Loading profile:', filename);
-        // server exposes /load/:filename — use path param instead of query
-        const res = await fetch(`/load/${encodeURIComponent(filename)}`);
-        if (!res.ok) throw new Error('Server error while loading profile');
-        const state = await res.json();
+        const base = localStorage.getItem('firebaseBase');
+        const auth = localStorage.getItem('firebaseAuth') || '';
+        if (!base) {
+            showToast('❌ Firebase URL not set', 'error');
+            return;
+        }
 
-        overallGain = state.gain ?? 0;
-        power = state.power ?? true;
-        bands = state.bands.map(b => ({
-            ...b,
-            x: freqToPixel(b.freq),
-            y: gainToY(b.gain + overallGain)
-        }));
+        const url = `${base}/profiles/${filename}.json${auth ? `?auth=${auth}` : ''}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data) throw new Error('Profile not found');
 
-        // Update UI
+        overallGain = data.gain ?? 0;
+        power = data.power ?? true;
+        if (data.bands) {
+            data.bands.forEach((bandData, i) => {
+                if (bands[i]) Object.assign(bands[i], bandData);
+            });
+        }
+
         gainSlider.value = overallGain;
         gainInput.value = overallGain.toFixed(1);
         gainValue.innerText = `${overallGain.toFixed(1)} dB`;
-        controlButtons.forEach((btn, i) => btn.classList.toggle('active', bands[i]?.enabled && power));
-        bands.forEach((_, i) => updateBandControls(i));
-        updateListItemState();
+
+        powerButton.classList.toggle('active', power);
         drawScene();
 
-        loadModal.style.display = 'none';
-        showToast(`✅ Loaded "${filename.replace('.json', '')}"`, 'success');
-
-        await saveStateToServer();
+        showToast(`✅ Loaded "${filename}"`, 'success');
     } catch (err) {
-        console.error('Error in loadProfile:', err);
+        console.error('Failed to load profile:', err);
         showToast('❌ Failed to load profile', 'error');
     }
 }
+
 
 
 
