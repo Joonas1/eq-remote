@@ -180,6 +180,7 @@ let selectedBand = null;
 let draggingBand = null;
 let power = POWER;
 let connection = false;
+let currentProfile = 'Default';
 
 setInterval(checkServerConnection, 1000);
 
@@ -587,7 +588,12 @@ confirmSaveButton.addEventListener('click', async () => {
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        currentProfile = filename;
+        updateProfileNameDisplay();
+        localStorage.setItem('lastProfile', currentProfile);
         showToast(`✅ Saved as "${filename}"`, 'success');
+
         saveModal.style.display = 'none';
     } catch (err) {
         console.error('Failed to save profile:', err);
@@ -668,7 +674,11 @@ async function loadProfile(filename) {
         powerButton.classList.toggle('active', power);
         drawScene();
 
+        currentProfile = filename;
+        updateProfileNameDisplay();
+        localStorage.setItem('lastProfile', currentProfile);
         showToast(`✅ Loaded "${filename}"`, 'success');
+        
     } catch (err) {
         console.error('Failed to load profile:', err);
         showToast('❌ Failed to load profile', 'error');
@@ -957,6 +967,12 @@ const updateCanvasCursor = e => {
 
 eqCanvas.addEventListener('mousemove', updateCanvasCursor);
 
+function updateProfileNameDisplay() {
+    const el = document.getElementById('activeProfileName');
+    if (el) el.textContent = currentProfile;
+}
+
+
 // --- Init ---
 async function init() {
     await loadStateFromServer();
@@ -964,6 +980,8 @@ async function init() {
     bands.forEach((band, index) => updateBandControls(index));
     powerStateUpdate();
     setContainerSize(CANVAS_WIDTH, CANVAS_HEIGHT);
+    currentProfile = localStorage.getItem('lastProfile') || 'Default';
+    updateProfileNameDisplay();
 }
 
 init();

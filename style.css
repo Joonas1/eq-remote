@@ -347,11 +347,18 @@ body {
 /* Buttons centered below */
 .buttonRow {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 10px;
+  gap: 8px;
 }
 
+#settingsInfo {
+    text-align: left;
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--info-text);
+}
 
 #saveModal {
     display: none;
