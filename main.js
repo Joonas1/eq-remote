@@ -100,6 +100,11 @@ const closeLoadModal = $('closeLoadModal');
 const bandInfo = $('bandInfo');
 const listItems = $('scrollList').querySelectorAll('.listItem');
 const connectionOverlay = $('connectionOverlay');
+const downloadStateButton = $('downloadJSON');
+const firebaseUrlInput = $('firebaseUrlInput');
+const firebaseAuthInput = $('firebaseAuthInput');
+const saveSettingsButton = $('saveSettingsButton');
+
 
 // --- Constants ---
 const {
@@ -180,7 +185,7 @@ async function saveFullStateToServer(filename = "default.json") {
                 type: b.type,
                 freq: Math.round(b.freq),
                 gain: Math.round(b.gain * 10) / 10,
-                Q: Math.round(b.Q * 10) / 10,
+                Q:    Math.round(b.Q * 10) / 10,
                 enabled: b.enabled
             })),
             filename,
@@ -200,6 +205,44 @@ async function saveFullStateToServer(filename = "default.json") {
     } catch (err) {
         console.error("Failed to save full state:", err);
     }
+}
+
+function buildCurrentStateObject(filename = "state.json") {
+    return {
+        gain: Math.round(overallGain * 10) / 10,
+        power: power,
+        bands: bands.map(b => ({
+            type: b.type,
+            freq: Math.round(b.freq),
+            gain: Math.round(b.gain * 10) / 10,
+            Q:    Math.round(b.Q * 10) / 10,
+            enabled: b.enabled
+        })),
+        filename,
+        version: 1
+    };
+}
+
+function downloadStateJson() {
+    // Build the current quantized state
+    const stateObj = buildCurrentStateObject(currentProfile || "state.json");
+
+    // Pretty-print JSON for readability
+    const jsonStr = JSON.stringify(stateObj, null, 2);
+
+    // Create a Blob and a temporary <a> to trigger download
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'state.json'; // final filename user gets
+    document.body.appendChild(a);
+    a.click();
+
+    // Cleanup
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 async function checkServerConnection() {
@@ -534,10 +577,6 @@ settingButtons.forEach((button, i) => {
 });
 
 // --- Settings Modal Logic ---
-const firebaseUrlInput = document.getElementById('firebaseUrlInput');
-const firebaseAuthInput = document.getElementById('firebaseAuthInput');
-const saveSettingsButton = document.getElementById('saveSettingsButton');
-
 if (firebaseUrlInput) firebaseUrlInput.value = localStorage.getItem('firebaseBase') || '';
 if (firebaseAuthInput) firebaseAuthInput.value = localStorage.getItem('firebaseAuth') || '';
 
@@ -560,6 +599,13 @@ if (saveSettingsButton) {
     });
 }
 
+if (downloadStateButton) {
+    downloadStateButton.addEventListener('click', () => {
+        downloadStateJson();
+        showToast("⬇ Downloaded state.json", "success");
+    });
+}
+
 // --- Save profile to /profiles/filename.json ---
 confirmSaveButton.addEventListener('click', async () => {
     const filename = saveFileName.value.trim();
@@ -575,7 +621,7 @@ confirmSaveButton.addEventListener('click', async () => {
             type: b.type,
             freq: Math.round(b.freq),
             gain: Math.round(b.gain * 10) / 10,
-            Q: Math.round(b.Q * 10) / 10,
+            Q:    Math.round(b.Q * 10) / 10,
             enabled: b.enabled
         })),
         savedAt: new Date().toISOString()
@@ -794,8 +840,10 @@ listItems.forEach((item, i) => {
         if (isNaN(val)) val = 1;
         val = Math.min(Math.max(val, 0.1), 10);
         bands[i].Q = val;
-        listQInput.value = (Math.round(band.Q * 10) / 10).toFixed(1);
+
+        listQInput.value = (Math.round(bands[i].Q * 10) / 10).toFixed(1);
         listQSlider.value = qToSliderValue(val) * 100;
+
         drawScene();
         updateFirebaseField(`bands/${i}/Q`, bands[i].Q);
     });
