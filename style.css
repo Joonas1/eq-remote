@@ -724,3 +724,27 @@ body {
   color: #ff4444;
   background-color: rgba(80, 0, 0, 0.5);
 }
+
+/* Make all number/text input fields match dark theme */
+input[type="number"],
+input[type="text"],
+input[type="range"] {
+  background-color: var(--bg-button);
+  border: 1px solid var(--border-color);
+  color: var(--color-text);
+  border-radius: 5px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* On focus, highlight with accent color */
+input[type="number"]:focus,
+input[type="text"]:focus {
+  outline: 2px solid var(--color-accent);
+  z-index: 2;
+}
+
+input[type="number"]:hover,
+input[type="text"]:hover {
+  background-color: var(--bg-button-hover);
+}
