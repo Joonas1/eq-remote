@@ -253,24 +253,23 @@ async function updateFullConnectionStatus() {
     const el = document.getElementById("connectionStatus");
     if (!el) return;
 
-    // first: can we reach Firebase?
+    // --- 1. Check Firebase reachability ---
     try {
         const url = getFirebaseUrl();
         if (!url) throw new Error("No URL");
-        const res = await fetch(url, { method: "HEAD" });
+        // Firebase does NOT allow HEAD — use GET with shallow=true
+        const res = await fetch(url + "?shallow=true", { method: "GET", cache: "no-store" });
         firebaseReachable = res.ok;
     } catch {
         firebaseReachable = false;
     }
 
-    // second: check ESP32 heartbeat (only if Firebase reachable)
+    // --- 2. Check ESP32 heartbeat (only if Firebase reachable) ---
     if (firebaseReachable) {
         try {
-            const urlOnline = `${FIREBASE_BASE}/status/esp32Online.json${getAuthQuery()}`;
-            const urlLastSeen = `${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`;
             const [resOnline, resLast] = await Promise.all([
-                fetch(urlOnline, { cache: "no-store" }),
-                fetch(urlLastSeen, { cache: "no-store" })
+                fetch(`${FIREBASE_BASE}/status/esp32Online.json${getAuthQuery()}`, { cache: "no-store" }),
+                fetch(`${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`, { cache: "no-store" })
             ]);
             esp32Online = await resOnline.json();
             esp32LastSeen = await resLast.json();
@@ -278,9 +277,12 @@ async function updateFullConnectionStatus() {
             esp32Online = false;
             esp32LastSeen = 0;
         }
+    } else {
+        esp32Online = false;
+        esp32LastSeen = 0;
     }
 
-    // third: decide display text
+    // --- 3. Update text and color ---
     if (!firebaseReachable) {
         el.textContent = "⚠️ Firebase unreachable";
         el.classList.add("disconnected");
@@ -294,6 +296,17 @@ async function updateFullConnectionStatus() {
         el.textContent = `🔴 ESP32 Offline (last seen ${secs}s ago)`;
         el.classList.add("disconnected");
         el.classList.remove("connected");
+    }
+
+    // --- 4. Update logical connection flag ---
+    connection = firebaseReachable && esp32Online && (Date.now() - esp32LastSeen < 15000);
+    powerStateUpdate();
+
+    // --- 5. Optional LED bar update ---
+    const bar = document.getElementById("connectionBar");
+    if (bar) {
+        bar.classList.toggle("firebase-connected", firebaseReachable);
+        bar.classList.toggle("esp32-connected", esp32Online && (Date.now() - esp32LastSeen < 15000));
     }
 }
 
