@@ -301,7 +301,7 @@ async function updateFullConnectionStatus() {
     }
 
     // --- 4. Update logical connection flag ---
-    connection = firebaseReachable && esp32Online && (Date.now() - esp32LastSeen < 15000);
+    connection = firebaseReachable; // overlay follows DB connectivity only
     powerStateUpdate();
 
     // --- 5. Optional LED bar update ---
