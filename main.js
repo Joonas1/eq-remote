@@ -180,7 +180,7 @@ async function saveFullStateToServer(filename = "default.json") {
                 type: b.type,
                 freq: Math.round(b.freq),
                 gain: Math.round(b.gain * 10) / 10,
-                Q:    Math.round(b.Q * 10) / 10,
+                Q: Math.round(b.Q * 10) / 10,
                 enabled: b.enabled
             })),
             filename,
@@ -575,7 +575,7 @@ confirmSaveButton.addEventListener('click', async () => {
             type: b.type,
             freq: Math.round(b.freq),
             gain: Math.round(b.gain * 10) / 10,
-            Q:    Math.round(b.Q * 10) / 10,
+            Q: Math.round(b.Q * 10) / 10,
             enabled: b.enabled
         })),
         savedAt: new Date().toISOString()
@@ -679,7 +679,10 @@ async function loadProfile(filename) {
         updateProfileNameDisplay();
         localStorage.setItem('lastProfile', currentProfile);
         showToast(`✅ Loaded "${filename}"`, 'success');
-        
+
+        // 🔁 Push loaded profile into live /state.json
+        await saveFullStateToServer(filename);
+
     } catch (err) {
         console.error('Failed to load profile:', err);
         showToast('❌ Failed to load profile', 'error');
