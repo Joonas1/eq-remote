@@ -2,8 +2,23 @@
 const $ = id => document.getElementById(id);
 const setStyle = (el, styles) => Object.assign(el.style, styles);
 const gainToY = gain => eqCanvas.height / 2 - (gain / 12) * (eqCanvas.height / 2.5);
+function quantizeField(key, value) {
+    switch (key) {
+        case 'freq':
+            // integer Hz
+            return Math.round(value);
+        case 'gain':
+            // one decimal
+            return Math.round(value * 10) / 10;
+        case 'Q':
+            // one decimal
+            return Math.round(value * 10) / 10;
+        default:
+            return value;
+    }
+}
 
-// --- Settings and Firebase URL ---
+// --- Settings and Firebase URL ---Helper
 let FIREBASE_BASE = localStorage.getItem('firebaseBase') || '';
 let STATE_URL = FIREBASE_BASE ? FIREBASE_BASE + '/state.json' : null;
 
@@ -23,13 +38,21 @@ function getFirebaseUrl() {
 // generic field updater (granular writes!)
 async function updateFirebaseField(path, value) {
     if (!FIREBASE_BASE) return;
+
+    // extract the last segment of the path (e.g. "bands/3/freq" -> "freq")
+    const parts = path.split('/');
+    const leafKey = parts[parts.length - 1];
+
+    // snap outgoing value according to rules
+    const snapped = quantizeField(leafKey, value);
+
     const url = `${FIREBASE_BASE}/state/${path}.json${getAuthQuery()}`;
 
     try {
         const res = await fetch(url, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(value)
+            body: JSON.stringify(snapped)
         });
         if (!res.ok) {
             console.error('Firebase update failed:', res.status, await res.text());
@@ -38,6 +61,7 @@ async function updateFirebaseField(path, value) {
         console.error('Firebase update error:', err);
     }
 }
+
 
 function setFirebaseUrl(newUrl) {
     if (newUrl && newUrl.endsWith('/')) newUrl = newUrl.slice(0, -1);
@@ -144,19 +168,19 @@ async function loadStateFromServer() {
     }
 }
 
-// (optional) save whole snapshot (used for reset or manual save button)
-async function saveFullStateToServer(filename = "41.json") {
+// --- Save full state to Firebase (full PUT) ---
+async function saveFullStateToServer(filename = "default.json") {
     try {
         if (!FIREBASE_BASE) return;
 
         const newState = {
-            gain: overallGain,
+            gain: Math.round(overallGain * 10) / 10,
             power: power,
             bands: bands.map(b => ({
                 type: b.type,
-                freq: b.freq,
-                gain: b.gain,
-                Q: b.Q,
+                freq: Math.round(b.freq),
+                gain: Math.round(b.gain * 10) / 10,
+                Q:    Math.round(b.Q * 10) / 10,
                 enabled: b.enabled
             })),
             filename,
@@ -545,13 +569,13 @@ confirmSaveButton.addEventListener('click', async () => {
     }
 
     const newState = {
-        gain: overallGain,
+        gain: Math.round(overallGain * 10) / 10,
         power: power,
         bands: bands.map(b => ({
             type: b.type,
-            freq: b.freq,
-            gain: b.gain,
-            Q: b.Q,
+            freq: Math.round(b.freq),
+            gain: Math.round(b.gain * 10) / 10,
+            Q:    Math.round(b.Q * 10) / 10,
             enabled: b.enabled
         })),
         savedAt: new Date().toISOString()
@@ -756,7 +780,7 @@ listItems.forEach((item, i) => {
     listQSlider.addEventListener('input', () => {
         const Q = qSliderToQ(listQSlider.value / 100);
         bands[i].Q = Q;
-        listQInput.value = Q.toFixed(2);
+        listQInput.value = (Math.round(Q * 10) / 10).toFixed(1);
         drawScene();
         updateFirebaseField(`bands/${i}/Q`, bands[i].Q);
     });
@@ -767,7 +791,7 @@ listItems.forEach((item, i) => {
         if (isNaN(val)) val = 1;
         val = Math.min(Math.max(val, 0.1), 10);
         bands[i].Q = val;
-        listQInput.value = val.toFixed(2);
+        listQInput.value = (Math.round(band.Q * 10) / 10).toFixed(1);
         listQSlider.value = qToSliderValue(val) * 100;
         drawScene();
         updateFirebaseField(`bands/${i}/Q`, bands[i].Q);
@@ -807,7 +831,7 @@ function updateBandControls(index) {
     listFreqInput.value = Math.round(band.freq);
     listFreqSlider.value = freqToSliderValue(band.freq) * 100;
 
-    listQInput.value = band.Q.toFixed(2);
+    listQInput.value = (Math.round(band.Q * 10) / 10).toFixed(1);
     listQSlider.value = qToSliderValue(band.Q) * 100;
 }
 
