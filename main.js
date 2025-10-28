@@ -8,11 +8,11 @@ let FIREBASE_BASE = localStorage.getItem('firebaseBase') || '';
 let STATE_URL = FIREBASE_BASE ? FIREBASE_BASE + '/state.json' : null;
 
 function getFirebaseUrl() {
-    if (!STATE_URL) {
+    if (!FIREBASE_BASE) {
         console.warn("No Firebase URL set. Running in offline mode.");
         return null;
     }
-    return STATE_URL;
+    return FIREBASE_BASE + '/state.json';
 }
 
 function setFirebaseUrl(newUrl) {
@@ -21,7 +21,10 @@ function setFirebaseUrl(newUrl) {
     STATE_URL = newUrl + '/state.json';
     localStorage.setItem('firebaseBase', newUrl);
     showToast("✅ Firebase URL saved locally", "success");
+    loadStateFromServer();
+    checkServerConnection();
 }
+
 
 // --- DOM ---
 const eqContainer = $('eqContainer');
@@ -136,11 +139,12 @@ async function saveStateToServer() {
         const url = getFirebaseUrl();
         if (!url) return;
 
-        await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newState)
         });
+
 
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -557,16 +561,16 @@ confirmSaveButton.addEventListener('click', async () => {
         const url = getFirebaseUrl();
         if (!url) return;
 
-        await fetch(url, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dataToSave)
+        const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataToSave)
         });
-
 
         if (!res.ok) {
             throw new Error(`Server error: ${res.status}`);
         }
+
 
         saveModal.style.display = 'none';
         showToast(`✅ Saved as "${filename}"`, 'success');
