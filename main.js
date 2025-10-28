@@ -493,7 +493,7 @@ loadModal.addEventListener('click', e => {
 
 settingButtons.forEach((button, i) => {
     button.addEventListener('click', () => {
-        if (!connection) return;
+        if (!connection && i != 3) return;
         switch (i) {
             case 0: // Save
                 saveFileName.value = '';
