@@ -144,7 +144,7 @@ async function saveStateToServer() {
         if (!url) return;
 
         const res = await fetch(url, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newState)
         });
