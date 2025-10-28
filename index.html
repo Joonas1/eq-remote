@@ -225,17 +225,17 @@
             </div>
         </div>
 
-        <div id="settingsModal">
-            <div id="settingsModalContent" class="modalContent">
-                <button id="closeSettingsModal">&times;</button>
-                <h2>Settings</h2>
-                <p>Adjust your parameters here</p>
-                <p>Adjust your parameters here</p>
-                <p>Adjust your parameters here</p>
-                <p>Adjust your parameters here</p>
-                <p>Adjust your parameters here</p>
-            </div>
+        <div id="settingsModalContent" class="modalContent">
+            <button id="closeSettingsModal">&times;</button>
+            <h2>Settings</h2>
+
+            <label for="firebaseUrlInput" style="display:block; margin-top:10px;">Firebase Database URL</label>
+            <input type="text" id="firebaseUrlInput" placeholder="https://yourproject-default-rtdb.region.firebasedatabase.app" style="width:100%; padding:6px; border-radius:5px; margin-bottom:10px;">
+
+            <button id="saveSettingsButton">Save Settings</button>
+            <p style="margin-top:10px; font-size:12px; color:#999;"></p>
         </div>
+
 
         <div id="saveModal" class="modal" style="display:none;">
             <div id="saveModalContent" class="modalContent">

@@ -3,9 +3,25 @@ const $ = id => document.getElementById(id);
 const setStyle = (el, styles) => Object.assign(el.style, styles);
 const gainToY = gain => eqCanvas.height / 2 - (gain / 12) * (eqCanvas.height / 2.5);
 
-// --- Database ---
-const FIREBASE_BASE = "https://parametriceq-efaac-default-rtdb.europe-west1.firebasedatabase.app";
-const STATE_URL = FIREBASE_BASE + "/state.json";
+// --- Settings and Firebase URL ---
+let FIREBASE_BASE = localStorage.getItem('firebaseBase') || '';
+let STATE_URL = FIREBASE_BASE ? FIREBASE_BASE + '/state.json' : null;
+
+function getFirebaseUrl() {
+    if (!STATE_URL) {
+        console.warn("No Firebase URL set. Running in offline mode.");
+        return null;
+    }
+    return STATE_URL;
+}
+
+function setFirebaseUrl(newUrl) {
+    if (newUrl && newUrl.endsWith('/')) newUrl = newUrl.slice(0, -1);
+    FIREBASE_BASE = newUrl;
+    STATE_URL = newUrl + '/state.json';
+    localStorage.setItem('firebaseBase', newUrl);
+    showToast("✅ Firebase URL saved locally", "success");
+}
 
 // --- DOM ---
 const eqContainer = $('eqContainer');
@@ -58,7 +74,11 @@ const BAND_KEYS = ['type', 'freq', 'gain', 'Q', 'enabled'];
 // Load EQ state from Firebase
 async function loadStateFromServer() {
     try {
-        const res = await fetch(STATE_URL);
+        const url = getFirebaseUrl();
+        if (!url) return; // skip if not set
+
+        const res = await fetch(url);
+
         const data = await res.json();
 
         if (!data) {
@@ -113,11 +133,15 @@ async function saveStateToServer() {
             version: 1
         };
 
-        const res = await fetch(STATE_URL, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newState)
+        const url = getFirebaseUrl();
+        if (!url) return;
+
+        await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
         });
+
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         console.log("Saved state to Firebase successfully");
@@ -128,7 +152,11 @@ async function saveStateToServer() {
 
 async function checkServerConnection() {
     try {
-        const res = await fetch(STATE_URL); // use Firebase instead of /state
+        const url = getFirebaseUrl();
+        if (!url) return; // skip if not set
+
+        const res = await fetch(url);
+
         connection = res.ok;
     } catch (e) {
         connection = false;
@@ -481,6 +509,27 @@ settingButtons.forEach((button, i) => {
     });
 });
 
+// --- Settings Modal Logic ---
+const firebaseUrlInput = document.getElementById('firebaseUrlInput');
+const saveSettingsButton = document.getElementById('saveSettingsButton');
+
+if (firebaseUrlInput) {
+    // load current saved URL
+    firebaseUrlInput.value = localStorage.getItem('firebaseBase') || '';
+}
+
+if (saveSettingsButton) {
+    saveSettingsButton.addEventListener('click', () => {
+        const newUrl = firebaseUrlInput.value.trim();
+        if (!newUrl.startsWith('https://') || !newUrl.includes('firebaseio.com')) {
+            showToast('❌ Invalid Firebase URL', 'error');
+            return;
+        }
+        setFirebaseUrl(newUrl);
+    });
+}
+
+
 // --- Save file ---
 confirmSaveButton.addEventListener('click', async () => {
     const filename = saveFileName.value.trim();
@@ -505,11 +554,15 @@ confirmSaveButton.addEventListener('click', async () => {
     };
 
     try {
-        const res = await fetch('/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dataToSave)
+        const url = getFirebaseUrl();
+        if (!url) return;
+
+        await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSave)
         });
+
 
         if (!res.ok) {
             throw new Error(`Server error: ${res.status}`);
