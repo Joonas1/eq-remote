@@ -73,6 +73,49 @@ function setFirebaseUrl(newUrl) {
     checkServerConnection();
 }
 
+async function checkEsp32StatusViaFirebase() {
+    if (!FIREBASE_BASE) return;
+
+    try {
+        const urlOnline = `${FIREBASE_BASE}/status/esp32Online.json${getAuthQuery()}`;
+        const urlLastSeen = `${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`;
+
+        const [resOnline, resLast] = await Promise.all([
+            fetch(urlOnline, { cache: "no-store" }),
+            fetch(urlLastSeen, { cache: "no-store" })
+        ]);
+
+        const online = await resOnline.json();
+        const lastSeen = await resLast.json();
+
+        const el = document.getElementById("connectionStatus");
+        const now = Date.now();
+
+        if (online && lastSeen && now - lastSeen < 15000) { // within 15 s
+            el.textContent = "🟢 ESP32 Connected";
+            el.classList.add("connected");
+            el.classList.remove("disconnected");
+        } else if (lastSeen) {
+            const secs = Math.floor((now - lastSeen) / 1000);
+            el.textContent = `🔴 ESP32 Offline (last seen ${secs}s ago)`;
+            el.classList.add("disconnected");
+            el.classList.remove("connected");
+        } else {
+            el.textContent = "🔴 ESP32 Offline";
+            el.classList.add("disconnected");
+            el.classList.remove("connected");
+        }
+    } catch (err) {
+        const el = document.getElementById("connectionStatus");
+        el.textContent = "⚠️ Firebase unreachable";
+        el.classList.add("disconnected");
+        el.classList.remove("connected");
+    }
+}
+
+setInterval(checkEsp32StatusViaFirebase, 3000);
+checkEsp32StatusViaFirebase();
+
 // --- DOM ---
 const eqContainer = $('eqContainer');
 const eqCanvas = $('eqCanvas');
@@ -245,35 +288,62 @@ function downloadStateJson() {
     URL.revokeObjectURL(url);
 }
 
-async function checkServerConnection() {
+let firebaseReachable = false;
+let esp32Online = false;
+let esp32LastSeen = 0;
+
+async function updateFullConnectionStatus() {
+    const el = document.getElementById("connectionStatus");
+    if (!el) return;
+
+    // first: can we reach Firebase?
     try {
         const url = getFirebaseUrl();
-        if (!url) return;
-        const res = await fetch(url);
-        connection = res.ok;
-    } catch (e) {
-        connection = false;
+        if (!url) throw new Error("No URL");
+        const res = await fetch(url, { method: "HEAD" });
+        firebaseReachable = res.ok;
+    } catch {
+        firebaseReachable = false;
     }
-    console.log('Firebase connection status:', connection);
-    powerStateUpdate();
-    updateConnectionStatus();
-}
 
-setInterval(checkServerConnection, 1000);
+    // second: check ESP32 heartbeat (only if Firebase reachable)
+    if (firebaseReachable) {
+        try {
+            const urlOnline = `${FIREBASE_BASE}/status/esp32Online.json${getAuthQuery()}`;
+            const urlLastSeen = `${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`;
+            const [resOnline, resLast] = await Promise.all([
+                fetch(urlOnline, { cache: "no-store" }),
+                fetch(urlLastSeen, { cache: "no-store" })
+            ]);
+            esp32Online = await resOnline.json();
+            esp32LastSeen = await resLast.json();
+        } catch {
+            esp32Online = false;
+            esp32LastSeen = 0;
+        }
+    }
 
-function updateConnectionStatus() {
-    const el = document.getElementById('connectionStatus');
-    if (!el) return;
-    if (connection) {
-        el.textContent = "🟢 ESP32 Connected";
+    // third: decide display text
+    if (!firebaseReachable) {
+        el.textContent = "⚠️ Firebase unreachable";
+        el.classList.add("disconnected");
+        el.classList.remove("connected");
+    } else if (esp32Online && Date.now() - esp32LastSeen < 15000) {
+        el.textContent = "🟢 ESP32 Connected (via Firebase)";
         el.classList.add("connected");
         el.classList.remove("disconnected");
     } else {
-        el.textContent = "🔴 ESP32 Disconnected";
+        const secs = esp32LastSeen ? Math.floor((Date.now() - esp32LastSeen) / 1000) : "?";
+        el.textContent = `🔴 ESP32 Offline (last seen ${secs}s ago)`;
         el.classList.add("disconnected");
         el.classList.remove("connected");
     }
 }
+
+// poll every 3 s
+setInterval(updateFullConnectionStatus, 3000);
+updateFullConnectionStatus();
+
 
 // --- Layout ---
 function setContainerSize() {

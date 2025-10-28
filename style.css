@@ -215,7 +215,7 @@ body {
     top: 30%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 90px;
+    font-size: 50px;
     font-weight: bold;
     color: #9e0000;
     pointer-events: none;
