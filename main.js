@@ -18,6 +18,20 @@ function quantizeField(key, value) {
     }
 }
 
+// Normalize lastSeen (could be epoch seconds, epoch millis, or millis since boot)
+function normalizeLastSeen(v) {
+    if (typeof v !== 'number' || !isFinite(v)) return 0;
+
+    // epoch millis (e.g., 1_7xx_xxx_xxx_000)
+    if (v > 1e11) return v;
+
+    // epoch seconds (e.g., 1_7xx_xxx_xxx)
+    if (v > 3e8) return v * 1000;
+
+    // millis since boot (e.g., a few million to a few billion)
+    return v;
+}
+
 // --- Settings and Firebase URL ---Helper
 let FIREBASE_BASE = localStorage.getItem('firebaseBase') || '';
 let STATE_URL = FIREBASE_BASE ? FIREBASE_BASE + '/state.json' : null;
@@ -66,7 +80,7 @@ async function updateFirebaseField(path, value) {
 function setFirebaseUrl(newUrl) {
     if (newUrl && newUrl.endsWith('/')) newUrl = newUrl.slice(0, -1);
     FIREBASE_BASE = newUrl;
-    STATE_URL = newUrl + '/state.json';
+    STATE_URL = FIREBASE_BASE ? (FIREBASE_BASE + '/state.json' + getAuthQuery()) : null;
     localStorage.setItem('firebaseBase', newUrl);
     showToast("✅ Firebase URL saved locally", "success");
     loadStateFromServer();
@@ -253,27 +267,25 @@ async function updateFullConnectionStatus() {
     const el = document.getElementById("connectionStatus");
     if (!el) return;
 
-    // --- 1. Check Firebase reachability ---
+    // 1) Check Firebase reachability (use shallow GET; HEAD isn’t allowed)
     try {
         const url = getFirebaseUrl();
         if (!url) throw new Error("No URL");
-        // Firebase does NOT allow HEAD — use GET with shallow=true
         const joiner = url.includes("?") ? "&" : "?";
         const res = await fetch(url + joiner + "shallow=true", { method: "GET", cache: "no-store" });
-
         firebaseReachable = res.ok;
     } catch {
         firebaseReachable = false;
     }
 
-    // --- 2. Check ESP32 heartbeat (only if Firebase reachable) ---
+    // 2) Heartbeat data
     if (firebaseReachable) {
         try {
             const [resOnline, resLast] = await Promise.all([
                 fetch(`${FIREBASE_BASE}/status/esp32Online.json${getAuthQuery()}`, { cache: "no-store" }),
-                fetch(`${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`, { cache: "no-store" })
+                fetch(`${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`,     { cache: "no-store" })
             ]);
-            esp32Online = await resOnline.json();
+            esp32Online   = await resOnline.json();
             esp32LastSeen = await resLast.json();
         } catch {
             esp32Online = false;
@@ -284,42 +296,38 @@ async function updateFullConnectionStatus() {
         esp32LastSeen = 0;
     }
 
-    // --- 3. Update text and color ---
+    // 3) Convert lastSeen to ms for comparison
+    const lastSeenMs = normalizeLastSeen(esp32LastSeen);
+    const fresh = (Date.now() - lastSeenMs) < 15000; // 15s window
+
+    // 4) UI text + classes
     if (!firebaseReachable) {
         el.textContent = "⚠️ Firebase unreachable";
         el.classList.add("disconnected");
         el.classList.remove("connected");
-    } else if (esp32Online && Date.now() - esp32LastSeen < 15000) {
+    } else if (esp32Online && fresh) {
         el.textContent = "🟢 ESP32 Connected (via Firebase)";
         el.classList.add("connected");
         el.classList.remove("disconnected");
     } else {
-        const secs = esp32LastSeen ? Math.floor((Date.now() - esp32LastSeen) / 1000) : "?";
+        const secs = lastSeenMs ? Math.floor((Date.now() - lastSeenMs) / 1000) : "?";
         el.textContent = `🔴 ESP32 Offline (last seen ${secs}s ago)`;
         el.classList.add("disconnected");
         el.classList.remove("connected");
     }
 
-    // --- 4. Update logical connection flag ---
-    const espConnected = esp32Online && (Date.now() - esp32LastSeen < 15000);
-    connection = firebaseReachable; // only DB affects overlay visibility
+    // 5) Logical connection affects controls/overlays
+    connection = firebaseReachable; // DB reachability gates UI interactivity
     powerStateUpdate();
-
-    // --- 5. Update ESP32 badge text ---
-    if (!firebaseReachable) {
-        el.textContent = "⚠️ Firebase unreachable";
-    } else if (espConnected) {
-        el.textContent = "🟢 ESP32 Connected (via Firebase)";
-    } else {
-        const secs = esp32LastSeen ? Math.floor((Date.now() - esp32LastSeen) / 1000) : "?";
-        el.textContent = `🔴 ESP32 Offline (last seen ${secs}s ago)`;
-    }
 }
 
-// poll every 3 s
-setInterval(updateFullConnectionStatus, 3000);
-updateFullConnectionStatus();
+// Small wrapper so your init() call remains valid
+function updateConnectionStatus() {
+    return updateFullConnectionStatus();
+}
 
+// keep your existing polling
+setInterval(updateFullConnectionStatus, 3000);
 
 // --- Layout ---
 function setContainerSize() {
@@ -643,16 +651,16 @@ if (firebaseAuthInput) firebaseAuthInput.value = localStorage.getItem('firebaseA
 
 if (saveSettingsButton) {
     saveSettingsButton.addEventListener('click', () => {
-        const newUrl = firebaseUrlInput.value.trim();
-        const newAuth = firebaseAuthInput.value.trim();
+        const newUrl = (firebaseUrlInput.value || '').trim().replace(/\/$/, '');
+        const newAuth = (firebaseAuthInput.value || '').trim();
 
         localStorage.setItem('firebaseBase', newUrl);
         localStorage.setItem('firebaseAuth', newAuth);
 
         FIREBASE_BASE = newUrl;
-        STATE_URL = `${newUrl}/state.json`;
-        showToast("✅ Firebase settings saved", "success");
+        STATE_URL = FIREBASE_BASE ? (FIREBASE_BASE + '/state.json' + getAuthQuery()) : null;
 
+        showToast("✅ Firebase settings saved", "success");
         settingsModal.style.display = 'none';
 
         loadStateFromServer();
