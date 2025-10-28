@@ -531,11 +531,6 @@ if (saveSettingsButton) {
         const newUrl = firebaseUrlInput.value.trim();
         const newAuth = firebaseAuthInput.value.trim();
 
-        if (!newUrl.startsWith('https://') || !newUrl.includes('firebaseio.com')) {
-            showToast('❌ Invalid Firebase URL', 'error');
-            return;
-        }
-
         // Save both locally
         localStorage.setItem('firebaseBase', newUrl);
         localStorage.setItem('firebaseAuth', newAuth);
