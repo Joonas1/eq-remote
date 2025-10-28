@@ -258,7 +258,9 @@ async function updateFullConnectionStatus() {
         const url = getFirebaseUrl();
         if (!url) throw new Error("No URL");
         // Firebase does NOT allow HEAD — use GET with shallow=true
-        const res = await fetch(url + "?shallow=true", { method: "GET", cache: "no-store" });
+        const joiner = url.includes("?") ? "&" : "?";
+        const res = await fetch(url + joiner + "shallow=true", { method: "GET", cache: "no-store" });
+
         firebaseReachable = res.ok;
     } catch {
         firebaseReachable = false;
