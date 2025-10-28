@@ -70,7 +70,7 @@ function setFirebaseUrl(newUrl) {
     localStorage.setItem('firebaseBase', newUrl);
     showToast("✅ Firebase URL saved locally", "success");
     loadStateFromServer();
-    checkServerConnection();
+    updateFullConnectionStatus();
 }
 
 // --- DOM ---
@@ -637,7 +637,7 @@ if (saveSettingsButton) {
         settingsModal.style.display = 'none';
 
         loadStateFromServer();
-        checkServerConnection();
+        updateFullConnectionStatus();
     });
 }
 
@@ -1072,7 +1072,7 @@ function updateProfileNameDisplay() {
 // --- Init ---
 async function init() {
     await loadStateFromServer();
-    await checkServerConnection();
+    await updateFullConnectionStatus();
     bands.forEach((band, index) => updateBandControls(index));
     powerStateUpdate();
     setContainerSize(CANVAS_WIDTH, CANVAS_HEIGHT);
