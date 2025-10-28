@@ -136,7 +136,7 @@ async function saveStateToServer() {
                 Q: b.Q,
                 enabled: b.enabled
             })),
-            filename: "41.json",
+            filename: "default.json",
             version: 1
         };
 
