@@ -272,8 +272,8 @@ body {
     padding: 20px;
     border-radius: 20px;
     color: var(--color-text);
-    min-width: 500px;
-    max-width: 2000px;
+    min-width: 300px;
+    max-width: 1000px;
 }
 
 #closeSettingsModal {
@@ -289,6 +289,34 @@ body {
 
 #closeSettingsModal:hover {
     color: var(--modal-hover);
+}
+
+#firebaseUrlInput,
+#firebaseAuthInput {
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    font-size: 20px;
+    border-radius: 5px;
+}
+
+#saveSettingsButton {
+    all: unset;
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color 0.2s, color 0.2s;
+    text-align: center;
+    user-select: none;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+#saveSettingsButton:hover {
+    background-color: var(--bg-button-hover);
 }
 
 #saveModal {
