@@ -363,12 +363,17 @@ body {
   border: 1px solid #ccc;
 }
 
-/* Buttons centered below */
 .buttonRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 10px;
+  gap: 8px;
+}
+
+/* New wrapper for right-side buttons */
+.rightButtons {
+  display: flex;
   gap: 8px;
 }
 
