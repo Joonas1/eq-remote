@@ -126,35 +126,40 @@ async function loadStateFromServer() {
 // Save current EQ state to Firebase
 async function saveStateToServer() {
     try {
-        const newState = {
-            gain: overallGain,
-            power: power,
-            bands: bands.map(b => ({
-                type: b.type,
-                freq: b.freq,
-                gain: b.gain,
-                Q: b.Q,
-                enabled: b.enabled
-            })),
-            filename: "default.json",
-            version: 1
-        };
+        const base = FIREBASE_BASE;
+        const auth = localStorage.getItem('firebaseAuth') || '';
+        if (!base) return;
 
-        const url = getFirebaseUrl();
-        if (!url) return;
+        // detect what changed
+        // for now, just push everything the UI might have updated
+        const updates = {};
+
+        updates['gain'] = overallGain;
+        updates['power'] = power;
+        updates['bands'] = bands.map(b => ({
+            type: b.type,
+            freq: b.freq,
+            gain: b.gain,
+            Q: b.Q,
+            enabled: b.enabled
+        }));
+
+        // optional metadata
+        updates['filename'] = 'default.json';
+        updates['version'] = 1;
+
+        const url = `${base}/state.json${auth ? `?auth=${auth}` : ''}`;
 
         const res = await fetch(url, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newState)
+            body: JSON.stringify(updates)
         });
 
-
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        console.log("Saved state to Firebase successfully");
+        console.log('✅ Firebase PATCH successful');
     } catch (err) {
-        console.error("Failed to save state:", err);
+        console.error('❌ Failed to save state:', err);
     }
 }
 
