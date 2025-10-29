@@ -118,6 +118,12 @@ const downloadStateButton = $('downloadJSON');
 const firebaseUrlInput = $('firebaseUrlInput');
 const firebaseAuthInput = $('firebaseAuthInput');
 const saveSettingsButton = $('saveSettingsButton');
+const openConstantsModal = $('openConstantsModal');
+const constantsModal = $('constantsModal');
+const constantsForm = $('constantsForm');
+const saveConstantsButton = $('saveConstantsButton');
+const closeConstantsModal = $('closeConstantsModal');
+const resetConstantsButton = $('resetConstantsButton');
 
 
 // --- Constants ---
@@ -127,6 +133,8 @@ const {
     FREQ_LABELS_TO_SHOW, LINE_WIDTH, CANVAS_WIDTH, CANVAS_HEIGHT,
     CIRCLE_RADIUS, BANDS, LABEL_FONT, POWER
 } = window.CONSTANTS;
+const savedConstants = JSON.parse(localStorage.getItem('userConstants') || '{}');
+Object.assign(window.CONSTANTS, savedConstants);
 
 // set theme vars
 const root = document.documentElement;
@@ -283,9 +291,9 @@ async function updateFullConnectionStatus() {
         try {
             const [resOnline, resLast] = await Promise.all([
                 fetch(`${FIREBASE_BASE}/status/esp32Online.json${getAuthQuery()}`, { cache: "no-store" }),
-                fetch(`${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`,     { cache: "no-store" })
+                fetch(`${FIREBASE_BASE}/status/lastSeen.json${getAuthQuery()}`, { cache: "no-store" })
             ]);
-            esp32Online   = await resOnline.json();
+            esp32Online = await resOnline.json();
             esp32LastSeen = await resLast.json();
         } catch {
             esp32Online = false;
@@ -622,6 +630,8 @@ closeSaveModal.addEventListener('click', () => { saveModal.style.display = 'none
 saveModal.addEventListener('click', e => { if (e.target === saveModal) saveModal.style.display = 'none'; });
 closeLoadModal.addEventListener('click', () => { loadModal.style.display = 'none'; });
 loadModal.addEventListener('click', e => { if (e.target === loadModal) loadModal.style.display = 'none'; });
+closeConstantsModal.addEventListener('click', () => { constantsModal.style.display = 'none'; });
+constantsModal.addEventListener('click', e => { if (e.target === constantsModal) constantsModal.style.display = 'none'; });
 
 settingButtons.forEach((button, i) => {
     button.addEventListener('click', () => {
@@ -1095,6 +1105,59 @@ function updateProfileNameDisplay() {
     const el = document.getElementById('activeProfileName');
     if (el) el.textContent = currentProfile;
 }
+
+// Open editor
+openConstantsModal.addEventListener('click', () => {
+    constantsForm.innerHTML = '';
+
+    Object.entries(window.CONSTANTS).forEach(([key, value]) => {
+        // Only expose editable values (skip arrays or nested objects)
+        if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
+            const div = document.createElement('div');
+            div.className = 'formRow';
+            div.innerHTML = `
+                <label>${key}</label>
+                <input type="text" id="const-${key}" value="${value}">
+            `;
+            constantsForm.appendChild(div);
+        }
+    });
+
+    constantsModal.style.display = 'flex';
+});
+
+
+// Close modal
+closeConstantsModal.addEventListener('click', () => {
+    constantsModal.style.display = 'none';
+});
+
+// Save constants to localStorage
+saveConstantsButton.addEventListener('click', () => {
+    const updatedConstants = { ...window.CONSTANTS };
+
+    Object.keys(updatedConstants).forEach(key => {
+        const input = document.getElementById(`const-${key}`);
+        if (!input) return;
+        const val = input.value.trim();
+
+        // Try to parse numbers and booleans
+        if (val === 'true' || val === 'false') updatedConstants[key] = val === 'true';
+        else if (!isNaN(parseFloat(val)) && isFinite(val)) updatedConstants[key] = parseFloat(val);
+        else updatedConstants[key] = val;
+    });
+
+    localStorage.setItem('userConstants', JSON.stringify(updatedConstants));
+    showToast('✅ Constants saved! Reloading...', 'success');
+    setTimeout(() => location.reload(), 1000);
+});
+
+// Reset constants
+resetConstantsButton.addEventListener('click', () => {
+    localStorage.removeItem('userConstants');
+    showToast('✅ Constants reset. Reloading...', 'success');
+    setTimeout(() => location.reload(), 1000);
+});
 
 // --- Init ---
 async function init() {
