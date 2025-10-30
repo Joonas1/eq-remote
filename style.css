@@ -1,155 +1,208 @@
 /* ========== Variables ========== */
 :root {
-  --bg-main: #222;
-  --bg-container: #201e29;
-  --bg-panel: #1b1b1b6f;
-  --bg-button: #2e2e34;
-  --bg-button-hover: #3a3a42;
-  --color-text: #eee;
-  --color-overlay: #a1a1a1;
-  --color-highlight: rgba(100, 150, 255, 0.2);
-  --border-color: #555555;
-  --radius: 20px;
-  --font-base: Arial, sans-serif;
-  --slider-thumb-width: 20px;
-  --slider-thumb-height: 40px;
-  --modal-backdrop: rgba(0, 0, 0, 0.4);
-  --modal-hover: #3a3a42;
-  --modal-bg: #1b1b1b;
-  --info-text: #777777;
-  --spacing: 10px;
+    --bg-main: #222;
+    --bg-container: #201e29;
+    --bg-panel: #1b1b1b6f;
+    --bg-button: #2e2e34;
+    --bg-button-hover: #3a3a42;
+    --color-text: #eee;
+    --color-overlay: #a1a1a1;
+    --color-highlight: rgba(100, 150, 255, 0.2);
+    --border-color: #555555;
+    --radius: 20px;
+    --font-base: Arial, sans-serif;
+    --slider-thumb-width: 20px;
+    --slider-thumb-height: 40px;
+    --modal-backdrop: rgba(0, 0, 0, 0.4);
+    --modal-hover: #3a3a42;
+    --modal-bg: #1b1b1b;
+    --info-text: #777777;
+    --spacing: 10px;
 }
 
 /* ========== Base ========== */
 body {
-  font-family: var(--font-base);
-  background: var(--bg-main);
-  color: var(--color-text);
-  margin: 20px;
+    font-family: var(--font-base);
+    background: var(--bg-main);
+    color: var(--color-text);
+    margin: 20px;
 }
 
 #mainContainer {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
 }
 
 #eqContainer,
 #controlsContainer {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-container);
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius);
-  padding: 10px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-container);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 10px;
 }
 
-#eqContainer { position: relative; }
+#eqContainer {
+    position: relative;
+}
 
 #topControls,
-#topSettings { display: flex; justify-content: space-around; }
+#topSettings {
+    display: flex;
+    justify-content: space-around;
+}
 
 #topControls button,
 #topSettings button {
-  all: unset;
-  display: inline-block;
-  padding: 6px 14px;
-  font-size: 14px;
-  cursor: pointer;
-  background-color: var(--bg-button);
-  color: var(--color-muted);
-  transition: background-color .2s, color .2s;
-  text-align: center;
-  user-select: none;
-  font-weight: bold;
+    all: unset;
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color .2s, color .2s;
+    text-align: center;
+    user-select: none;
+    font-weight: bold;
 }
-#topControls button:hover,
-#topSettings button:hover { background-color: var(--bg-button-hover); }
-#topControls button.active { color: var(--color-accent); }
-#topControls button.stby   { color: var(--color-inactive); }
 
-#dbContainer { position: relative; user-select: none; }
+#topControls button:hover,
+#topSettings button:hover {
+    background-color: var(--bg-button-hover);
+}
+
+#topControls button.active {
+    color: var(--color-accent);
+}
+
+#topControls button.stby {
+    color: var(--color-inactive);
+}
+
+#dbContainer {
+    position: relative;
+    user-select: none;
+}
 
 #eqCanvas,
 #bandControls,
 #controls {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-color);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
 }
 
-#controls input[type="range"] { accent-color: var(--color-accent); }
+#controls input[type="range"] {
+    accent-color: var(--color-accent);
+}
 
 #gainValue {
-  display: block;
-  text-align: center;
-  margin-top: 20px;
-  font-size: 16px;
-  color: var(--color-muted);
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 16px;
+    color: var(--color-muted);
 }
 
 #powerButton {
-  position: absolute;
-  background-color: var(--bg-button);
-  color: var(--color-muted);
-  transition: background-color .2s, color .3s;
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 25px;
-  user-select: none;
+    position: absolute;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color .2s, color .3s;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 25px;
+    user-select: none;
 }
-#powerButton:hover { background-color: var(--bg-button-hover); }
-#powerButton.active { color: var(--color-accent); }
+
+#powerButton:hover {
+    background-color: var(--bg-button-hover);
+}
+
+#powerButton.active {
+    color: var(--color-accent);
+}
 
 /* ========== Gain slider/input ========== */
 #gainSlider {
-  height: 20px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--bg-button);
-  cursor: pointer;
+    height: 20px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg-button);
+    cursor: pointer;
 }
+
 #gainSlider::-webkit-slider-thumb,
 #gainSlider:disabled::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px; height: 40px; border-radius: 10%;
-  background: var(--color-accent);
+    -webkit-appearance: none;
+    width: 20px;
+    height: 40px;
+    border-radius: 10%;
+    background: var(--color-accent);
 }
-#gainSlider:disabled::-webkit-slider-thumb { background: var(--color-inactive); }
+
+#gainSlider:disabled::-webkit-slider-thumb {
+    background: var(--color-inactive);
+}
+
 #gainSlider::-moz-range-thumb,
 #gainSlider:disabled::-moz-range-thumb {
-  width: 20px; height: 40px; border-radius: 10%;
-  background: var(--color-accent);
+    width: 20px;
+    height: 40px;
+    border-radius: 10%;
+    background: var(--color-accent);
 }
-#gainSlider:disabled::-moz-range-thumb { background: var(--color-inactive); }
+
+#gainSlider:disabled::-moz-range-thumb {
+    background: var(--color-inactive);
+}
 
 #gainInput {
-  background-color: var(--bg-button);
-  border: 1px solid var(--border-color);
-  color: var(--color-muted);
-  text-align: center;
-  font-size: 16px;
-  border-radius: 5px;
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    text-align: center;
+    font-size: 16px;
+    border-radius: 5px;
 }
-#gainInput:focus { outline: 2px solid var(--color-accent); }
+
+#gainInput:focus {
+    outline: 2px solid var(--color-accent);
+}
 
 /* ========== Overlays ========== */
 #powerOverlay,
 #connectionOverlay {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  user-select: none;
-  opacity: 0;
-  transition: opacity .2s;
-  z-index: 10;
-  font-weight: bold;
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity .2s;
+    z-index: 10;
+    font-weight: bold;
 }
-#powerOverlay { top: 40%; font-size: 100px; color: var(--color-overlay); }
-#connectionOverlay { top: 30%; font-size: 50px; color: #9e0000; }
+
+#powerOverlay {
+    top: 40%;
+    font-size: 100px;
+    color: var(--color-overlay);
+}
+
+#connectionOverlay {
+    top: 30%;
+    font-size: 50px;
+    color: #9e0000;
+}
+
 #powerOverlay.active,
-#connectionOverlay.active { opacity: .5; }
+#connectionOverlay.active {
+    opacity: .5;
+}
 
 /* ========== Settings buttons (IDs) ========== */
 #openConstantsModal,
@@ -158,240 +211,380 @@ body {
 #resetConstantsButton,
 #saveConstantsButton,
 #confirmSaveButton {
-  all: unset;
-  display: inline-block;
-  padding: 6px 14px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: var(--bg-button);
-  color: var(--color-muted);
-  transition: background-color .2s, color .2s;
-  text-align: center;
-  user-select: none;
-  font-weight: bold;
-  border-radius: 5px;
+    all: unset;
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: var(--bg-button);
+    color: var(--color-muted);
+    transition: background-color .2s, color .2s;
+    text-align: center;
+    user-select: none;
+    font-weight: bold;
+    border-radius: 5px;
 }
+
 #openConstantsModal:hover,
 #downloadJSON:hover,
 #saveSettingsButton:hover,
 #resetConstantsButton:hover,
 #saveConstantsButton:hover,
-#confirmSaveButton:hover { background-color: var(--bg-button-hover); }
+#confirmSaveButton:hover {
+    background-color: var(--bg-button-hover);
+}
 
 /* ========== Forms/layout bits ========== */
 .formRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 8px 0;
 }
+
 .formRow label {
-  flex: 1;
-  text-align: left;
-  font-weight: 500;
-  margin-right: 10px;
+    flex: 1;
+    text-align: left;
+    font-weight: 500;
+    margin-right: 10px;
 }
+
 .formRow input {
-  flex: 2;
-  padding: 6px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+    flex: 2;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
 }
-.buttonRow { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; }
-.rightButtons { display: flex; gap: 8px; }
-#settingsInfo { text-align: left; margin-top: 10px; font-size: 14px; color: var(--info-text); }
+
+.buttonRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    gap: 8px;
+}
+
+.rightButtons {
+    display: flex;
+    gap: 8px;
+}
+
+#settingsInfo {
+    text-align: left;
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--info-text);
+}
 
 /* ========== Modals (base) ========== */
 #settingsModal,
 #constantsModal,
 #saveModal,
 #loadModal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  backdrop-filter: blur(5px);
-  background-color: var(--modal-backdrop);
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+    display: none;
+    position: fixed;
+    inset: 0;
+    backdrop-filter: blur(5px);
+    background-color: var(--modal-backdrop);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
+
 #settingsModalContent,
 #constantsModalContent,
 #saveModalContent,
 #loadModalContent {
-  position: relative;
-  background-color: var(--modal-bg);
-  padding: 20px;
-  border-radius: var(--radius);
-  color: var(--color-text);
-  min-width: 500px;
-  max-width: 1000px;
+    position: relative;
+    background-color: var(--modal-bg);
+    padding: 20px;
+    border-radius: var(--radius);
+    color: var(--color-text);
+    min-width: 500px;
+    max-width: 1000px;
 }
+
 #saveModalContent,
-#loadModalContent { min-width: 300px; }
+#loadModalContent {
+    min-width: 300px;
+}
 
 #closeSettingsModal,
 #closeConstantsModal,
 #closeSaveModal,
 #closeLoadModal {
-  position: absolute;
-  top: 10px; right: 10px;
-  background: transparent;
-  border: none;
-  color: var(--color-text);
-  font-size: 32px;
-  cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-size: 32px;
+    cursor: pointer;
 }
+
 #closeSettingsModal:hover,
 #closeConstantsModal:hover,
 #closeSaveModal:hover,
-#closeLoadModal:hover { color: var(--modal-hover); }
+#closeLoadModal:hover {
+    color: var(--modal-hover);
+}
 
 #firebaseUrlInput,
 #firebaseAuthInput,
 #saveFileName {
-  background-color: var(--bg-button);
-  border: 1px solid var(--border-color);
-  color: var(--color-muted);
-  font-size: 20px;
-  border-radius: 5px;
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    font-size: 20px;
+    border-radius: 5px;
 }
 
 /* ========== Profile list ========== */
 #profileList {
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 10px;
-  margin: 0;
-  list-style: none;
-  scrollbar-width: 30px;
-  scrollbar-color: var(--bg-button) var(--bg-panel);
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    margin: 0;
+    list-style: none;
+    scrollbar-width: 30px;
+    scrollbar-color: var(--bg-button) var(--bg-panel);
 }
+
 #profileList li {
-  background: var(--bg-button);
-  color: var(--color-muted);
-  padding: 10px 14px;
-  margin: 6px 0;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 1px solid var(--border-color);
+    background: var(--bg-button);
+    color: var(--color-muted);
+    padding: 10px 14px;
+    margin: 6px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    position: relative;
+    padding-right: 36px;
 }
-#profileList li:hover { background: var(--bg-button-hover); }
-#profileList::-webkit-scrollbar { width: 30px; }
-#profileList::-webkit-scrollbar-track { background: var(--bg-panel); border-radius: 5px; }
-#profileList::-webkit-scrollbar-thumb { background: var(--bg-button); border-radius: 5px; }
-#profileList::-webkit-scrollbar-thumb:hover { background: var(--bg-button-hover); }
+
+#profileList li:hover {
+    background: var(--bg-button-hover);
+}
+
+#profileList::-webkit-scrollbar {
+    width: 30px;
+}
+
+#profileList::-webkit-scrollbar-track {
+    background: var(--bg-panel);
+    border-radius: 5px;
+}
+
+#profileList::-webkit-scrollbar-thumb {
+    background: var(--bg-button);
+    border-radius: 5px;
+}
+
+#profileList::-webkit-scrollbar-thumb:hover {
+    background: var(--bg-button-hover);
+}
+
+.profile-delete-btn {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-size: 22px;   /* close buttons are 32px; smaller feels right in lists */
+  cursor: pointer;
+  line-height: 1;
+}
+.profile-delete-btn:hover { color: var(--modal-hover); }
 
 /* ========== Info panels ========== */
 #bandInfo {
-  display: flex;
-  justify-content: space-around;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
 }
-#bottomInfo { position: relative; text-align: center; margin-top: 10px; font-size: 14px; color: var(--info-text); }
+
+#bottomInfo {
+    position: relative;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--info-text);
+}
 
 /* ========== Lists & controls ========== */
-.scrollList { display: flex; flex-direction: column; width: 100%; height: 100%; overflow-y: auto; z-index: 1; }
+.scrollList {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    z-index: 1;
+}
 
 .listItem {
-  padding: 8px 10px;
-  margin-bottom: 5px;
-  background: var(--bg-button);
-  color: var(--color-text);
-  user-select: none;
-  cursor: pointer;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background: var(--bg-button);
+    color: var(--color-text);
+    user-select: none;
+    cursor: pointer;
 }
-.bandLabel { font-weight: bold; color: var(--color-muted); }
+
+.bandLabel {
+    font-weight: bold;
+    color: var(--color-muted);
+}
 
 .gainInput,
 .freqInput,
 .qInput {
-  width: 60px;
-  background-color: var(--bg-button);
-  border: 1px solid var(--border-color);
-  color: var(--color-muted);
-  text-align: center;
-  font-size: 16px;
-  border-radius: 5px;
+    width: 60px;
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-muted);
+    text-align: center;
+    font-size: 16px;
+    border-radius: 5px;
 }
+
 .gainInput:focus,
 .freqInput:focus,
-.qInput:focus { outline: 2px solid var(--color-accent); z-index: 2; }
+.qInput:focus {
+    outline: 2px solid var(--color-accent);
+    z-index: 2;
+}
 
-.inputSliderRow { color: var(--color-muted); display: flex; align-items: center; gap: 5px; }
-.controlRow label { width: 40px; cursor: pointer; }
-.gainSlider, .freqSlider, .qSlider { flex: 1; cursor: pointer; }
+.inputSliderRow {
+    color: var(--color-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
 
-.listItem.highlighted { background-color: var(--color-highlight); border-left: 3px solid var(--color-accent); }
-.listItem.inactive { opacity: .5; pointer-events: none; }
+.controlRow label {
+    width: 40px;
+    cursor: pointer;
+}
+
+.gainSlider,
+.freqSlider,
+.qSlider {
+    flex: 1;
+    cursor: pointer;
+}
+
+.listItem.highlighted {
+    background-color: var(--color-highlight);
+    border-left: 3px solid var(--color-accent);
+}
+
+.listItem.inactive {
+    opacity: .5;
+    pointer-events: none;
+}
+
 .scrollList .listItem span,
-.scrollList .listItem label { user-select: none; }
+.scrollList .listItem label {
+    user-select: none;
+}
 
 /* ========== Toasts ========== */
 #toast-container {
-  position: fixed;
-  top: 20px; right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
+
 .toast {
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 6px;
-  font-size: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.2);
-  opacity: 0;
-  transform: translateY(-20px);
-  transition: all .4s ease;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all .4s ease;
 }
-.toast.show { opacity: 1; transform: translateY(0); }
-.toast.success { background-color: #28a745; }
-.toast.error   { background-color: #dc3545; }
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.success {
+    background-color: #28a745;
+}
+
+.toast.error {
+    background-color: #dc3545;
+}
 
 /* ========== Connection status ========== */
 #connectionStatus {
-  position: fixed;
-  bottom: 15px; left: 20px;
-  font-size: 14px;
-  color: #ccc;
-  background: rgba(0,0,0,.5);
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid #444;
-  z-index: 2000;
-  font-family: monospace;
-  transition: color .3s, background-color .3s;
+    position: fixed;
+    bottom: 15px;
+    left: 20px;
+    font-size: 14px;
+    color: #ccc;
+    background: rgba(0, 0, 0, .5);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    z-index: 2000;
+    font-family: monospace;
+    transition: color .3s, background-color .3s;
 }
-#connectionStatus.connected { color: #00ff88; background-color: rgba(0,80,0,.5); }
-#connectionStatus.disconnected { color: #ff4444; background-color: rgba(80,0,0,.5); }
+
+#connectionStatus.connected {
+    color: #00ff88;
+    background-color: rgba(0, 80, 0, .5);
+}
+
+#connectionStatus.disconnected {
+    color: #ff4444;
+    background-color: rgba(80, 0, 0, .5);
+}
 
 /* ========== Inputs theme ========== */
 input[type="number"],
 input[type="text"],
 input[type="range"] {
-  background-color: var(--bg-button);
-  border: 1px solid var(--border-color);
-  color: var(--color-text);
-  border-radius: 5px;
-  text-align: center;
-  font-size: 14px;
+    background-color: var(--bg-button);
+    border: 1px solid var(--border-color);
+    color: var(--color-text);
+    border-radius: 5px;
+    text-align: center;
+    font-size: 14px;
 }
+
 input[type="number"]:focus,
-input[type="text"]:focus { outline: 2px solid var(--color-accent); z-index: 2; }
+input[type="text"]:focus {
+    outline: 2px solid var(--color-accent);
+    z-index: 2;
+}
+
 input[type="number"]:hover,
-input[type="text"]:hover { background-color: var(--bg-button-hover); }
+input[type="text"]:hover {
+    background-color: var(--bg-button-hover);
+}
 
 /* ========== Modal Performance Patch (kept) ========== */
 #settingsModal,
 #saveModal,
 #loadModal {
-  backdrop-filter: none !important;
-  background-color: rgba(0, 0, 0, 0.55) !important;
+    backdrop-filter: none !important;
+    background-color: rgba(0, 0, 0, 0.55) !important;
 }
+
 #constantsModal {
-  backdrop-filter: none !important;
-  background-color: rgba(0, 0, 0, 0) !important;
+    backdrop-filter: none !important;
+    background-color: rgba(0, 0, 0, 0) !important;
 }

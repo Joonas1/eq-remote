@@ -87,6 +87,23 @@ function setFirebaseUrl(newUrl) {
     updateFullConnectionStatus();
 }
 
+async function deleteProfile(nameWithJson) {
+    if (!FIREBASE_BASE) {
+        showToast('❌ Firebase URL not set', 'error');
+        return false;
+    }
+    const url = `${FIREBASE_BASE}/profiles/${nameWithJson}.json${getAuthQuery()}`;
+    try {
+        const res = await fetch(url, { method: 'DELETE' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return true;
+    } catch (err) {
+        console.error('Failed to delete profile:', err);
+        showToast('❌ Failed to delete profile', 'error');
+        return false;
+    }
+}
+
 // --- DOM ---
 const eqContainer = $('eqContainer');
 const eqCanvas = $('eqCanvas');
@@ -781,13 +798,59 @@ async function openLoadModal() {
             profileList.innerHTML = '<li style="color:#888;">No profiles saved</li>';
         } else {
             Object.keys(data).forEach(name => {
+                // Visual name without ".json"
+                const cleanName = name.replace('.json', '');
+
+                // Row
                 const li = document.createElement('li');
-                li.textContent = name.replace('.json', '');
-                li.style.cursor = 'pointer';
+                li.style.position = 'relative'; // for absolute-positioned delete button
+
+                // Click row to load
                 li.addEventListener('click', () => {
                     loadProfile(name);
                     loadModal.style.display = 'none';
                 });
+
+                // Label
+                const label = document.createElement('span');
+                label.textContent = cleanName;
+
+                // Delete button (×), same vibe as modal close
+                const delBtn = document.createElement('button');
+                delBtn.className = 'profile-delete-btn';
+                delBtn.setAttribute('aria-label', `Delete ${cleanName}`);
+                delBtn.title = `Delete ${cleanName}`;
+                delBtn.innerHTML = '&times;';
+
+                delBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation(); // don't trigger row load
+                    const ok = confirm(`Delete profile "${cleanName}"?\nThis cannot be undone.`);
+                    if (!ok) return;
+
+                    const success = await deleteProfile(name);
+                    if (!success) return;
+
+                    // Remove from list
+                    li.remove();
+
+                    // If it was the active profile, reset
+                    if (currentProfile === name || currentProfile === cleanName) {
+                        localStorage.removeItem('lastProfile');
+                        currentProfile = DEFAULT_NAME;
+                        updateProfileNameDisplay();
+                        showToast('ℹ️ Active profile was deleted — reverted to default', 'success');
+                    }
+
+                    // If list became empty, show placeholder
+                    if (!profileList.querySelector('li')) {
+                        profileList.innerHTML = '<li style="color:#888;">No profiles saved</li>';
+                    }
+
+                    showToast(`🗑️ Deleted "${cleanName}"`, 'success');
+                });
+
+                li.appendChild(label);
+                li.appendChild(delBtn);
                 profileList.appendChild(li);
             });
         }
