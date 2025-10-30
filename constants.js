@@ -26,5 +26,5 @@ window.CONSTANTS = {
     ],
     LABEL_FONT: '18px Arial',
     POWER: true,
-    DEFAULT_NAME: 'unnamed.json'
+    DEFAULT_NAME: 'unnamed'
 };

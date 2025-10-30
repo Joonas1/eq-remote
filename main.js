@@ -126,15 +126,18 @@ const closeConstantsModal = $('closeConstantsModal');
 const resetConstantsButton = $('resetConstantsButton');
 
 
-// --- Constants ---
-const {
-    DB_LINE_COLOR, FREQ_LINE_COLOR, CENTER_LINE_COLOR, LABEL_COLOR,
-    CURVE_COLOR, CURVE_COLOR_OFF, REFERENCE_GAINS, FREQ_LABELS,
-    FREQ_LABELS_TO_SHOW, LINE_WIDTH, CANVAS_WIDTH, CANVAS_HEIGHT,
-    CIRCLE_RADIUS, BANDS, LABEL_FONT, POWER
-} = window.CONSTANTS;
+// Load user overrides first
 const savedConstants = JSON.parse(localStorage.getItem('userConstants') || '{}');
 Object.assign(window.CONSTANTS, savedConstants);
+
+// Destructure after merging (so new values apply)
+const {
+  DB_LINE_COLOR, FREQ_LINE_COLOR, CENTER_LINE_COLOR, LABEL_COLOR,
+  CURVE_COLOR, CURVE_COLOR_OFF, REFERENCE_GAINS, FREQ_LABELS,
+  FREQ_LABELS_TO_SHOW, LINE_WIDTH, CANVAS_WIDTH, CANVAS_HEIGHT,
+  CIRCLE_RADIUS, BANDS, LABEL_FONT, POWER, DEFAULT_NAME
+} = window.CONSTANTS;
+
 
 // set theme vars
 const root = document.documentElement;
@@ -149,7 +152,7 @@ let selectedBand = null;
 let draggingBand = null;
 let power = POWER;
 let connection = false;
-let currentProfile = 'Default';
+let currentProfile = DEFAULT_NAME;
 
 // --- Load state from Firebase (full GET once) ---
 async function loadStateFromServer() {
@@ -318,11 +321,36 @@ async function updateFullConnectionStatus() {
         el.classList.add("connected");
         el.classList.remove("disconnected");
     } else {
-        const secs = lastSeenMs ? Math.floor((Date.now() - lastSeenMs) / 1000) : "?";
-        el.textContent = `🔴 ESP32 Offline (last seen ${secs}s ago)`;
+        let text = "?";
+        if (lastSeenMs) {
+            const diffSec = Math.floor((Date.now() - lastSeenMs) / 1000);
+
+            if (diffSec < 60) {
+                // under a minute
+                text = `${diffSec}s`;
+            } else if (diffSec < 3600) {
+                // 1–59 minutes
+                const mins = Math.floor(diffSec / 60);
+                const secs = diffSec % 60;
+                text = `${mins}m ${secs}s`;
+            } else if (diffSec < 86400) {
+                // 1–23 hours
+                const hours = Math.floor(diffSec / 3600);
+                const mins = Math.floor((diffSec % 3600) / 60);
+                text = `${hours}h ${mins}m`;
+            } else {
+                // over a day
+                const days = Math.floor(diffSec / 86400);
+                const hours = Math.floor((diffSec % 86400) / 3600);
+                text = `${days}d ${hours}h`;
+            }
+        }
+
+        el.textContent = `🔴 ESP32 Offline (last seen ${text} ago)`;
         el.classList.add("disconnected");
         el.classList.remove("connected");
     }
+
 
     // 5) Logical connection affects controls/overlays
     connection = firebaseReachable; // DB reachability gates UI interactivity
@@ -846,7 +874,7 @@ function resetEQ() {
 
     bands.forEach((band, index) => updateBandControls(index));
     updateListItemState();
-    currentProfile = 'default';
+    currentProfile = DEFAULT_NAME;
     updateProfileNameDisplay();
     showToast("✅ EQ reset to defaults", "success");
 
@@ -1166,7 +1194,7 @@ async function init() {
     bands.forEach((band, index) => updateBandControls(index));
     powerStateUpdate();
     setContainerSize(CANVAS_WIDTH, CANVAS_HEIGHT);
-    currentProfile = localStorage.getItem('lastProfile') || 'Default';
+    currentProfile = localStorage.getItem('lastProfile') || DEFAULT_NAME;
     updateProfileNameDisplay();
     updateConnectionStatus();
 }
