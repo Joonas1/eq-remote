@@ -824,7 +824,7 @@ async function openLoadModal() {
 
                 delBtn.addEventListener('click', async (e) => {
                     e.stopPropagation(); // don't trigger row load
-                    const ok = confirm(`Delete profile "${cleanName}"?\nThis cannot be undone.`);
+                    const ok = confirm(`Delete profile "${cleanName}"?`);
                     if (!ok) return;
 
                     const success = await deleteProfile(name);
@@ -838,7 +838,6 @@ async function openLoadModal() {
                         localStorage.removeItem('lastProfile');
                         currentProfile = DEFAULT_NAME;
                         updateProfileNameDisplay();
-                        showToast('ℹ️ Active profile was deleted — reverted to default', 'success');
                     }
 
                     // If list became empty, show placeholder
